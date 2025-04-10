@@ -1,0 +1,76 @@
+{# <div id="mobile-sidebar" class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: 280px;">
+    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <svg class="bi pe-none me-2" width="40" height="32" aria-hidden="true">
+            <use xlink:href="#bootstrap"></use>
+        </svg>
+        <span class="fs-4">Reversl Admin Panel</span>
+    </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+            <a href="#" class="nav-link active" aria-current="page">
+                <svg class="bi pe-none me-2" width="16" height="16" aria-hidden="true">
+                    <use xlink:href="#home"></use>
+                </svg>
+                Home
+            </a>
+        </li>
+    </ul>
+</div> #}
+
+<div id="sidebar" class="h-100 d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: 280px;">
+    <a href="{% if request.scope['route'].name != 'admin_panel_home' %}{{ url_for('admin_panel_home') }}{% else %}#{% endif %}"
+        class="d-flex justify-content-center text-white text-decoration-none">
+        <span class="fs-5">Reversl Admin Panel</span>
+    </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+        {% if "R_USER" in request.user.permissions %}
+        <li class="nav-item">
+            <a href="{% if request.scope['route'].name not in ['admin_panel_users','admin_panel_user'] %}{{ url_for('admin_panel_users') }}{% else %}#{% endif %}"
+                class="nav-link {% if request.scope['route'].name in ['admin_panel_users','admin_panel_user'] %}active{% endif %}"
+                aria-current="page">
+                Users
+            </a>
+        </li>
+        {% endif %}
+        {% if "R_CHAT" in request.user.permissions %}
+        <li class="nav-item">
+            <a href="{% if request.scope['route'].name not in ['admin_panel_chats','admin_panel_chat'] %}{{ url_for('admin_panel_chats') }}{% else %}#{% endif %}"
+                class="nav-link {% if request.scope['route'].name in ['admin_panel_chats','admin_panel_chat'] %}active{% endif %}"
+                aria-current="page">
+                Chats
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+    <hr>
+    <div class="dropdown" style="position: relative;">
+        <a href="#"
+            class="d-flex align-items-center justify-content-between text-white text-decoration-none dropdown-toggle"
+            data-bs-toggle="dropdown" aria-expanded="false" role="button" id="dropdownMenuLink">
+            <div>
+                <img src="https://github.com/eac0de.png" alt="" width="32" height="32" class="rounded-circle me-2">
+                <strong style="font-size: 13px;">{{ (request.user.full_name if request.user.full_name else
+                    request.user.email)|truncate(30,
+                    True,
+                    '..') }}</strong>
+            </div>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark text-small mb-2" style="width: 250px;"
+            aria-labelledby="dropdownMenuLink">
+            <li>
+                <form action="{{ url_for('admin_panel_logout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+                    <button type="submit" class="dropdown-item">Sign out</button>
+                </form>
+            </li>
+            <li>
+                <form action="{{ url_for('admin_panel_logout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+                    <button type="submit" class="dropdown-item">Sign out</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+</div>
