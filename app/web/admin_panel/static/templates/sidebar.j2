@@ -1,0 +1,59 @@
+{# <div id="mobile-sidebar" class="d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: 280px;">
+    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <svg class="bi pe-none me-2" width="40" height="32" aria-hidden="true">
+            <use xlink:href="#bootstrap"></use>
+        </svg>
+        <span class="fs-4">Reversl Admin Panel</span>
+    </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+            <a href="#" class="nav-link active" aria-current="page">
+                <svg class="bi pe-none me-2" width="16" height="16" aria-hidden="true">
+                    <use xlink:href="#home"></use>
+                </svg>
+                Home
+            </a>
+        </li>
+    </ul>
+</div> #}
+
+<div id="sidebar" class="h-100 d-flex flex-column flex-shrink-0 p-3 text-bg-dark" style="width: 280px;">
+    <a href="{{ url_for('admin_panel_home') }}" class="d-flex justify-content-center text-white text-decoration-none">
+        <span class="fs-5">Reversl Admin Panel</span>
+    </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+        {% if "R_USER" in user.permissions %}
+        <li class="nav-item">
+            <a href="{{ url_for('admin_panel_users') }}"
+                class="nav-link {% if url_for('admin_panel_users') == request.url %}active{% endif %}"
+                aria-current="page">
+                <svg class="bi pe-none me-2" width="16" height="16" aria-hidden="true">
+                    <use xlink:href="#home"></use>
+                </svg>
+                Users
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+    <hr>
+    <div class="dropdown" style="position: relative;">
+        <a href="#"
+            class="d-flex align-items-center justify-content-between text-white text-decoration-none dropdown-toggle"
+            data-bs-toggle="dropdown" aria-expanded="false" role="button" id="dropdownMenuLink">
+            <div>
+                <img src="https://github.com/eac0de.png" alt="" width="32" height="32" class="rounded-circle me-2">
+                {% set full_name = (user.last_name or '') ~ ' ' ~ (user.first_name or '') ~ ' ' ~ (user.patronymic_name
+                or '') %}
+                <strong style="font-size: 13px;">{{ (full_name|trim if full_name.strip() else user.email)|truncate(30,
+                    True,
+                    '..') }}</strong>
+            </div>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark text-small mb-2" style="width: 200px; right: -50px;"
+            aria-labelledby="dropdownMenuLink">
+            <li><a class="dropdown-item" href="#">Sign out</a></li>
+        </ul>
+    </div>
+</div>
