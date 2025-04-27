@@ -19,7 +19,7 @@
         <p class="mt-3">Last Name:{{ selected_chat.last_name }}</p>
         <p class="mt-3">Patronymic Name:{{ selected_chat.patronymic_name }}</p>
         {% for msg in messages %}
-        <p class="mt-3">Message:{{ msg.content }}</p>
+        <p class="mt-3">Message:{{ msg.text }}</p>
         {% endfor %}
         {% endif %}
     </div>

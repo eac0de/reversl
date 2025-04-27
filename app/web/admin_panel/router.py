@@ -188,7 +188,7 @@ async def get_chats_page(
         UserDep(PermissionCode.R_CHAT),
     ],
 )
-async def get_chats_page(
+async def get_chat_page(
     db_session: DBSessionDep,
     request: Request,
     chat_uid: int,
@@ -201,6 +201,7 @@ async def get_chats_page(
         "request": request,
         "chats": await chats_service.get_chats_list(),
         "selected_chat": chat,
+        "messages": await chats_service.get_chat_messages(chat.uid),
     }
     response = templates.TemplateResponse(
         name="chats.j2",
@@ -208,17 +209,31 @@ async def get_chats_page(
     )
     return response
 
-    # users_service = UsersService(db_session=db_session)
-    # user = await users_service.get_user(user_uid=user_uid)
-    # if not user:
-    #     return RedirectResponse(url=request.url_for("admin_panel_users"))
-    # context = {
-    #     "request": request,
-    #     "users": await users_service.get_users_list(),
-    #     "selected_user": await users_service.get_user(user_uid=user_uid),
-    # }
-    # response = templates.TemplateResponse(
-    #     name="users.j2",
-    #     context=context,
-    # )
-    # return response
+
+@router.get(
+    path="/message_files/{file_uid}/",
+    name="admin_panel_download_message_image",
+    dependencies=[
+        UserDep(PermissionCode.R_CHAT),
+    ],
+)
+async def download_message_image(
+    db_session: DBSessionDep,
+    request: Request,
+    file_uid: int,
+):
+    chats_service = ChatsService(db_session=db_session)
+    chat = await chats_service.get_chat(file_uid)
+    if not chat:
+        return HTTPException(status_code=404, detail="File not found")
+    context = {
+        "request": request,
+        "chats": await chats_service.get_chats_list(),
+        "selected_chat": chat,
+        "messages": await chats_service.get_chat_messages(chat.uid),
+    }
+    response = templates.TemplateResponse(
+        name="chats.j2",
+        context=context,
+    )
+    return response

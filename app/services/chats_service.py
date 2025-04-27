@@ -1,11 +1,11 @@
-from uuid import UUID
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.chat import Chat
+from app.models.message import Message
 from app.schemas.chats import ChatLSchema, ChatRSchema
-from app.schemas.messages import MessageRLSchema
+from app.schemas.messages import FileMessageRLSchema, MessageRLSchema
 
 
 class ChatsService:
@@ -61,10 +61,51 @@ class ChatsService:
         limit: int = 10,
         offset: int = 0,
     ) -> list[MessageRLSchema]:
-        chat = await self.get_chat_or_none(chat_uid)
-        if not chat:
-            return None
-        return self.to_chat_rl_schema(chat)
+        stmt = (
+            select(Message)
+            .where(Message.chat_uid == chat_uid)
+            .options(
+                joinedload(Message.files),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.db_session.execute(stmt)
+        return [
+            MessageRLSchema(
+                uid=msg.uid,
+                text=msg.text,
+                files=[FileMessageRLSchema(uid=f.uid, name=f.name) for f in msg.files],
+                created_at=msg.created_at,
+            )
+            for msg in result.unique().scalars()
+        ]
+    
+    async def download_message_image(
+        self,
+        chat_uid: int,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[MessageRLSchema]:
+        stmt = (
+            select(Message)
+            .where(Message.chat_uid == chat_uid)
+            .options(
+                joinedload(Message.files),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.db_session.execute(stmt)
+        return [
+            MessageRLSchema(
+                uid=msg.uid,
+                text=msg.text,
+                files=[FileMessageRLSchema(uid=f.uid, name=f.name) for f in msg.files],
+                created_at=msg.created_at,
+            )
+            for msg in result.unique().scalars()
+        ]
 
     async def get_chat_or_none(
         self,
