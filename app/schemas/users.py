@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -29,7 +27,7 @@ class WithFullName(BaseModel):
 
 
 class UserRSchema(WithFullName):
-    uid: UUID = Field(
+    uid: int = Field(
         title="User ID",
     )
     email: EmailStr = Field(
@@ -45,7 +43,7 @@ class UserRSchema(WithFullName):
 
 
 class UserLSchema(WithFullName):
-    uid: UUID = Field(
+    uid: int = Field(
         title="User ID",
     )
     email: EmailStr = Field(

@@ -19,6 +19,8 @@ class FileStreamer:
         chunk_size: int = 1024,
         with_cleanup: bool = False,
         filename: str | None = None,
+        mime_type: str | None = None,
+        encoding: str | None = None,
     ):
         if not isinstance(filepath, Path):
             filepath = Path(filepath)
@@ -32,13 +34,15 @@ class FileStreamer:
         self.filepath = filepath
         self.chunk_size = chunk_size
         self.with_cleanup = with_cleanup
-
-        mime_type, encoding = mimetypes.guess_type(self.filepath.name)
-        self._media_type = mime_type or "application/octet-stream"
-        self._encoding = encoding or "utf-8"
+        if not mime_type or not encoding:
+            _mime_type, _encoding = mimetypes.guess_type(self.filepath.name)
+            self._media_type = (
+                mime_type if mime_type else _mime_type or "application/octet-stream"
+            )
+            self._encoding = encoding if encoding else _encoding or "utf-8"
 
         self._content_disposition = (
-            f"attachment; filename*=UTF-8''{quote(self.filename)}"
+            f"attachment; filename*={self._encoding}''{quote(self.filename)}"
         )
 
     async def get_stream(self) -> AsyncGenerator[str, None]:

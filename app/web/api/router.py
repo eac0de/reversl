@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse
 from app.database import DBSessionDep
 from app.schemas.messages import MessageCSchema, MessageRLSchema
 from app.services.api_service import APIService
-from app.web.dependencies.auth import ChatAuthDep
+from app.web.dependencies.auth import ChatDep
 
 router = APIRouter()
 
@@ -15,12 +15,12 @@ router = APIRouter()
 )
 async def create_message(
     db_session: DBSessionDep,
-    chat_auth: ChatAuthDep,
+    chat_auth: ChatDep,
     schema: MessageCSchema = Form(media_type="multipart/form-data"),
 ) -> MessageRLSchema:
     api_service = APIService(
         db_session=db_session,
-        chat_id=chat_auth.chat_uid,
+        chat_uid=chat_auth.chat_uid,
     )
     return await api_service.create_message(schema)
 
@@ -31,11 +31,11 @@ async def create_message(
 )
 async def get_messages_list(
     db_session: DBSessionDep,
-    chat_auth: ChatAuthDep,
+    chat_auth: ChatDep,
 ) -> list[MessageRLSchema]:
     api_service = APIService(
         db_session=db_session,
-        chat_id=chat_auth.chat_uid,
+        chat_uid=chat_auth.chat_uid,
     )
     return await api_service.get_messages_list()
 
@@ -46,12 +46,12 @@ async def get_messages_list(
 )
 async def download_message_file(
     db_session: DBSessionDep,
-    chat_auth: ChatAuthDep,
+    chat: ChatDep,
     file_uid: int,
 ) -> StreamingResponse:
     api_service = APIService(
         db_session=db_session,
-        chat_id=chat_auth.chat_uid,
+        chat_id=chat.uid,
     )
     file_streamer = await api_service.download_message_file(
         file_uid=file_uid,

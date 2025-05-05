@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -39,7 +38,7 @@ class Permission(Base):
         primary_key=True,
         comment="Permission code",
     )
-    user_uid: Mapped[UUID] = mapped_column(
+    user_uid: Mapped[int] = mapped_column(
         ForeignKey("users.uid"),
         primary_key=True,
         comment="User ID",

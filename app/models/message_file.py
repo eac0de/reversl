@@ -24,6 +24,10 @@ class MessageFile(Base):
         String(256),
         comment="File name",
     )
+    mime_type: Mapped[str] = mapped_column(
+        String(256),
+        comment="File MIME type",
+    )
     path: Mapped[Path] = mapped_column(
         PathType(),
         comment="File path",

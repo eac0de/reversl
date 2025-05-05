@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import magic
 from anyio import Path
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.config import settings
+from app.models.chat import Chat
 from app.models.message import Message
 from app.models.message_file import MessageFile
 from app.schemas.messages import FileMessageRLSchema, MessageCSchema, MessageRLSchema
@@ -17,17 +19,17 @@ class APIService:
     def __init__(
         self,
         db_session: AsyncSession,
-        chat_id: int,
+        chat_uid: int,
     ):
         self.db_session = db_session
-        self.chat_id = chat_id
+        self.chat_uid = chat_uid
 
     async def create_message(
         self,
         schema: MessageCSchema,
     ) -> MessageRLSchema:
         message = Message(
-            chat_uid=self.chat_id,
+            chat_uid=self.chat_uid,
             text=schema.text,
             files=[],
         )
@@ -44,14 +46,18 @@ class APIService:
                         )
                     file_path = settings.FILES_PATH / f"{uuid4()}_{f.filename}"
                     files_paths.append(file_path)
-                    await file_path.write_bytes(await f.read())
+                    content = await f.read()
+                    mime = magic.Magic(mime=True)
+                    mime_type = mime.from_buffer(content)
+                    await file_path.write_bytes(content)
                     message.files.append(
                         MessageFile(
                             name=f.filename,
                             path=file_path,
+                            mime_type=mime_type,
                         )
                     )
-            except Exception:
+            except:
                 for p in files_paths:
                     await p.unlink()
                 raise
@@ -63,7 +69,7 @@ class APIService:
     ) -> list[MessageRLSchema]:
         stmt = (
             select(Message)
-            .where(Message.chat_uid == self.chat_id)
+            .where(Message.chat_uid == self.chat_uid)
             .options(
                 joinedload(Message.files),
             )
@@ -78,7 +84,7 @@ class APIService:
         stmt = (
             select(MessageFile)
             .join(MessageFile.message)
-            .where(Message.chat_uid == self.chat_id, MessageFile.uid == file_uid)
+            .where(Message.chat_uid == self.chat_uid, MessageFile.uid == file_uid)
         )
         file = await self.db_session.scalar(stmt)
         if not file:
@@ -103,6 +109,7 @@ class APIService:
                 FileMessageRLSchema(
                     uid=f.uid,
                     name=f.name,
+                    mime_type=f.mime_type,
                 )
                 for f in message.files
             ],

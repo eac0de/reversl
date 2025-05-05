@@ -20,9 +20,9 @@ from app.web.middlewares.process_time import ProcessTimeMiddleware
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     await settings.FILES_PATH.mkdir(parents=True, exist_ok=True)
-    async with get_session() as session:
-        users_service = UsersService(db_session=session)
-        await users_service.create_init_user(
+    async with get_session() as db_session:
+        await UsersService.create_init_user(
+            db_session=db_session,
             email=settings.REVERSL_FIRST_USER_EMAIL,
             password=settings.REVERSL_FIRST_USER_PASSWORD,
         )

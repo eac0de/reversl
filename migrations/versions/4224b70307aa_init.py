@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 0d6646b85c2f
+Revision ID: 4224b70307aa
 Revises:
-Create Date: 2025-04-18 15:01:43.187518
+Create Date: 2025-04-29 17:59:47.245728
 
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 import app.core.typess
 
 # revision identifiers, used by Alembic.
-revision: str = "0d6646b85c2f"
+revision: str = "4224b70307aa"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -58,7 +58,9 @@ def upgrade() -> None:
     )
     op.create_table(
         "users",
-        sa.Column("uid", sa.UUID(), nullable=False, comment="User ID"),
+        sa.Column(
+            "uid", sa.Integer(), autoincrement=True, nullable=False, comment="User ID"
+        ),
         sa.Column(
             "first_name", sa.String(length=64), nullable=True, comment="User first name"
         ),
@@ -102,7 +104,7 @@ def upgrade() -> None:
             nullable=False,
             comment="Message created at",
         ),
-        sa.Column("user_uid", sa.UUID(), nullable=True, comment="User ID"),
+        sa.Column("user_uid", sa.Integer(), nullable=True, comment="User ID"),
         sa.ForeignKeyConstraint(
             ["chat_uid"],
             ["chats.uid"],
@@ -138,7 +140,7 @@ def upgrade() -> None:
             nullable=False,
             comment="Permission code",
         ),
-        sa.Column("user_uid", sa.UUID(), nullable=False, comment="User ID"),
+        sa.Column("user_uid", sa.Integer(), nullable=False, comment="User ID"),
         sa.ForeignKeyConstraint(
             ["user_uid"],
             ["users.uid"],
@@ -155,6 +157,9 @@ def upgrade() -> None:
             comment="Message file ID",
         ),
         sa.Column("name", sa.String(length=256), nullable=False, comment="File name"),
+        sa.Column(
+            "mime_type", sa.String(length=256), nullable=False, comment="File MIME type"
+        ),
         sa.Column(
             "path", app.core.typess.PathType(), nullable=False, comment="File path"
         ),
@@ -173,5 +178,4 @@ def downgrade() -> None:
     op.drop_table("messages")
     op.drop_table("users")
     op.drop_table("chats")
-    # ### end Alembic commands ###
     # ### end Alembic commands ###

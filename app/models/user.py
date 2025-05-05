@@ -1,9 +1,7 @@
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from pydantic import EmailStr
 from sqlalchemy import String
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
@@ -15,9 +13,9 @@ if TYPE_CHECKING:
 class User(Base):
     __tablename__ = "users"
 
-    uid: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
+    uid: Mapped[int] = mapped_column(
         primary_key=True,
+        autoincrement=True,
         comment="User ID",
     )
     first_name: Mapped[str | None] = mapped_column(

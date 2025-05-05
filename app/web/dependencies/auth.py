@@ -1,5 +1,4 @@
 from typing import Annotated, Any
-from uuid import UUID
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, Request, Response, status
@@ -9,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.config import settings
 from app.core.exceptions import ResponseException
 from app.database import DBSessionDep
-from app.services.chats_service import ChatsService
+from app.models.chat import Chat
 
 NotAuthenticatedException = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -34,7 +33,7 @@ ADMIN_PANEL_TOKEN_PATH = (
 
 
 class AuthPayloadSchema(BaseModel):
-    user_uid: UUID = Field(
+    user_uid: int = Field(
         title="User ID",
     )
 
@@ -51,7 +50,7 @@ class Auth:
     def set_session_cookie(
         cls,
         response: Response,
-        user_uid: UUID,
+        user_uid: int,
     ) -> None:
         auth_payload = AuthPayloadSchema(user_uid=user_uid)
         response.set_cookie(
@@ -90,9 +89,9 @@ class Auth:
             payload = cls._get_payload(token)
             return AuthPayloadSchema.model_validate(payload)
         except Exception as e:
-            raise ResponseException(
-                RedirectResponse(url=request.url_for("admin_panel_auth"))
-            ) from e
+            response = RedirectResponse(url=request.url_for("admin_panel_auth"))
+            cls.unset_session_cookie(response)
+            raise ResponseException(response) from e
 
     @classmethod
     async def get_chat_auth_payload(
@@ -100,10 +99,18 @@ class Auth:
         response: Response,
         db_session: DBSessionDep,
         token: Annotated[str | None, Cookie(alias=CHAT_TOKEN_KEY)] = None,
-    ) -> ChatAuthPayloadSchema:
-        if token is None:
-            chats_service = ChatsService(db_session=db_session)
-            chat = await chats_service.create_chat()
+    ) -> Chat:
+        try:
+            assert token is not None
+            payload_data = cls._get_payload(token)
+            payload = ChatAuthPayloadSchema.model_validate(payload_data)
+            chat = await db_session.get(Chat, payload.chat_uid)
+            assert chat is not None
+            return chat
+        except:  # pylint: disable=bare-except
+            chat = Chat()
+            db_session.add(chat)
+            await db_session.commit()
             payload_scheme = ChatAuthPayloadSchema(chat_uid=chat.uid)
             response.set_cookie(
                 key=CHAT_TOKEN_KEY,
@@ -115,12 +122,7 @@ class Auth:
                 httponly=True,
                 path=CHAT_TOKEN_PATH,
             )
-            return payload_scheme
-        try:
-            payload = cls._get_payload(token)
-            return ChatAuthPayloadSchema.model_validate(payload)
-        except Exception as e:
-            raise NotAuthenticatedException from e
+            return chat
 
     @staticmethod
     def _get_payload(token: str) -> dict[str, Any]:
@@ -128,4 +130,4 @@ class Auth:
 
 
 AuthDep = Annotated[AuthPayloadSchema, Depends(Auth.get_auth_payload)]
-ChatAuthDep = Annotated[ChatAuthPayloadSchema, Depends(Auth.get_chat_auth_payload)]
+ChatDep = Annotated[Chat, Depends(Auth.get_chat_auth_payload)]

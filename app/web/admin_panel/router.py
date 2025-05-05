@@ -1,13 +1,15 @@
-from uuid import UUID
+from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import DBSessionDep
 from app.models.permission import PermissionCode
+from app.models.user import User
 from app.schemas.auth import LoginSchema
+from app.schemas.messages import MessageCSchema
 from app.services.chats_service import ChatsService
 from app.services.users_service import UsersService
 from app.web.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
@@ -54,8 +56,8 @@ async def login(
     db_session: DBSessionDep,
     schema: LoginSchema = Form(),
 ):
-    users_service = UsersService(db_session=db_session)
-    user = await users_service.auth_user(
+    user = await UsersService.auth_user(
+        db_session=db_session,
         email=schema.email,
         password=schema.password,
     )
@@ -110,15 +112,16 @@ async def get_home_page(
 @router.get(
     path="/users/",
     name="admin_panel_users",
-    dependencies=[
-        UserDep(PermissionCode.R_USER),
-    ],
 )
 async def get_users_page(
     db_session: DBSessionDep,
+    user: Annotated[User, UserDep(PermissionCode.R_USER)],
     request: Request,
 ):
-    users_service = UsersService(db_session=db_session)
+    users_service = UsersService(
+        db_session=db_session,
+        user_uid=user.uid,
+    )
     context = {
         "request": request,
         "users": await users_service.get_users_list(),
@@ -133,23 +136,24 @@ async def get_users_page(
 @router.get(
     path="/users/{user_uid}/",
     name="admin_panel_user",
-    dependencies=[
-        UserDep(PermissionCode.R_USER),
-    ],
 )
 async def get_user_page(
-    user_uid: UUID,
+    user_uid: int,
+    user: Annotated[User, UserDep(PermissionCode.R_USER)],
     db_session: DBSessionDep,
     request: Request,
 ):
-    users_service = UsersService(db_session=db_session)
-    user = await users_service.get_user(user_uid=user_uid)
-    if not user:
+    users_service = UsersService(
+        db_session=db_session,
+        user_uid=user.uid,
+    )
+    selected_user = await users_service.get_user(user_uid=user_uid)
+    if not selected_user:
         return RedirectResponse(url=request.url_for("admin_panel_users"))
     context = {
         "request": request,
         "users": await users_service.get_users_list(),
-        "selected_user": await users_service.get_user(user_uid=user_uid),
+        "selected_user": selected_user,
     }
     response = templates.TemplateResponse(
         name="users.j2",
@@ -161,15 +165,16 @@ async def get_user_page(
 @router.get(
     path="/chats/",
     name="admin_panel_chats",
-    dependencies=[
-        UserDep(PermissionCode.R_CHAT),
-    ],
 )
 async def get_chats_page(
     db_session: DBSessionDep,
+    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     request: Request,
 ):
-    chats_service = ChatsService(db_session=db_session)
+    chats_service = ChatsService(
+        db_session=db_session,
+        user_uid=user.uid,
+    )
     context = {
         "request": request,
         "chats": await chats_service.get_chats_list(),
@@ -190,10 +195,14 @@ async def get_chats_page(
 )
 async def get_chat_page(
     db_session: DBSessionDep,
+    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     request: Request,
     chat_uid: int,
 ):
-    chats_service = ChatsService(db_session=db_session)
+    chats_service = ChatsService(
+        db_session=db_session,
+        user_uid=user.uid,
+    )
     chat = await chats_service.get_chat(chat_uid)
     if not chat:
         return RedirectResponse(url=request.url_for("admin_panel_chats"))
@@ -212,28 +221,56 @@ async def get_chat_page(
 
 @router.get(
     path="/message_files/{file_uid}/",
-    name="admin_panel_download_message_image",
-    dependencies=[
-        UserDep(PermissionCode.R_CHAT),
-    ],
+    name="admin_panel_download_message_file",
 )
-async def download_message_image(
+async def download_message_file(
     db_session: DBSessionDep,
-    request: Request,
+    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     file_uid: int,
 ):
-    chats_service = ChatsService(db_session=db_session)
-    chat = await chats_service.get_chat(file_uid)
-    if not chat:
-        return HTTPException(status_code=404, detail="File not found")
-    context = {
-        "request": request,
-        "chats": await chats_service.get_chats_list(),
-        "selected_chat": chat,
-        "messages": await chats_service.get_chat_messages(chat.uid),
-    }
-    response = templates.TemplateResponse(
-        name="chats.j2",
-        context=context,
+    chats_service = ChatsService(
+        db_session=db_session,
+        user_uid=user.uid,
     )
-    return response
+    file_streamer = await chats_service.download_message_file(file_uid)
+    if not file_streamer:
+        raise HTTPException(
+            status_code=404,
+            detail="File not found",
+        )
+    return StreamingResponse(
+        content=file_streamer.get_bytes_stream(),
+        media_type=file_streamer.media_type,
+        headers={"Content-Disposition": file_streamer.content_disposition},
+    )
+
+
+@router.post(
+    path="/chats/{chat_uid}/messages/",
+    name="admin_panel_send_message",
+)
+async def send_message(
+    db_session: DBSessionDep,
+    request: Request,
+    chat_uid: int,
+    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
+    schema: MessageCSchema = Form(media_type="multipart/form-data"),
+):
+    chats_service = ChatsService(
+        db_session=db_session,
+        user_uid=user.uid,
+    )
+    chat = await chats_service.get_chat(chat_uid)
+    if not chat:
+        return RedirectResponse(
+            url=request.url_for("admin_panel_chats"),
+            status_code=303,
+        )
+    await chats_service.create_message(
+        chat_uid=chat.uid,
+        schema=schema,
+    )
+    return RedirectResponse(
+        url=request.url_for("admin_panel_chat", chat_uid=chat.uid),
+        status_code=303,
+    )

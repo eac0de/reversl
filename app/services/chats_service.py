@@ -1,11 +1,19 @@
+from uuid import uuid4
+
+import magic
+from anyio import Path
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.config import settings
 from app.models.chat import Chat
 from app.models.message import Message
+from app.models.message_file import MessageFile
 from app.schemas.chats import ChatLSchema, ChatRSchema
-from app.schemas.messages import FileMessageRLSchema, MessageRLSchema
+from app.schemas.messages import FileMessageRLSchema, MessageCSchema, MessageRLSchema
+from app.utils.file_streamer import FileStreamer
 
 
 class ChatsService:
@@ -13,8 +21,10 @@ class ChatsService:
     def __init__(
         self,
         db_session: AsyncSession,
+        user_uid: int,
     ) -> None:
         self.db_session = db_session
+        self.user_uid = user_uid
 
     async def create_chat(
         self,
@@ -75,37 +85,23 @@ class ChatsService:
             MessageRLSchema(
                 uid=msg.uid,
                 text=msg.text,
-                files=[FileMessageRLSchema(uid=f.uid, name=f.name) for f in msg.files],
+                files=[
+                    FileMessageRLSchema(uid=f.uid, name=f.name, mime_type=f.mime_type)
+                    for f in msg.files
+                ],
                 created_at=msg.created_at,
             )
             for msg in result.unique().scalars()
         ]
-    
-    async def download_message_image(
+
+    async def download_message_file(
         self,
-        chat_uid: int,
-        limit: int = 10,
-        offset: int = 0,
-    ) -> list[MessageRLSchema]:
-        stmt = (
-            select(Message)
-            .where(Message.chat_uid == chat_uid)
-            .options(
-                joinedload(Message.files),
-            )
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.db_session.execute(stmt)
-        return [
-            MessageRLSchema(
-                uid=msg.uid,
-                text=msg.text,
-                files=[FileMessageRLSchema(uid=f.uid, name=f.name) for f in msg.files],
-                created_at=msg.created_at,
-            )
-            for msg in result.unique().scalars()
-        ]
+        file_uid: int,
+    ) -> FileStreamer | None:
+        file = await self.db_session.get(MessageFile, file_uid)
+        if not file:
+            return None
+        return FileStreamer(file.path, mime_type=file.mime_type)
 
     async def get_chat_or_none(
         self,
@@ -113,3 +109,43 @@ class ChatsService:
     ) -> Chat | None:
         stmt = select(Chat).where(Chat.uid == chat_uid)
         return await self.db_session.scalar(stmt)
+
+    async def create_message(
+        self,
+        chat_uid: int,
+        schema: MessageCSchema,
+    ):
+        message = Message(
+            chat_uid=chat_uid,
+            text=schema.text,
+            files=[],
+        )
+        self.db_session.add(message)
+
+        files_paths: list[Path] = []
+        if schema.files:
+            try:
+                for f in schema.files:
+                    if not f.size or f.size > 20 * 1024 * 1024:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="File size must be less than 20MB",
+                        )
+                    file_path = settings.FILES_PATH / f"{uuid4()}_{f.filename}"
+                    files_paths.append(file_path)
+                    content = await f.read()
+                    mime = magic.Magic(mime=True)
+                    mime_type = mime.from_buffer(content)
+                    await file_path.write_bytes(content)
+                    message.files.append(
+                        MessageFile(
+                            name=f.filename,
+                            path=file_path,
+                            mime_type=mime_type,
+                        )
+                    )
+            except:
+                for p in files_paths:
+                    await p.unlink()
+                raise
+        await self.db_session.commit()

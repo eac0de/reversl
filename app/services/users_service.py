@@ -1,5 +1,3 @@
-from uuid import UUID, uuid4
-
 import bcrypt
 from fastapi import HTTPException, status
 from pydantic import EmailStr
@@ -17,8 +15,10 @@ class UsersService:
     def __init__(
         self,
         db_session: AsyncSession,
+        user_uid: int,
     ) -> None:
         self.db_session = db_session
+        self.user_uid = user_uid
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -46,12 +46,14 @@ class UsersService:
         await self.db_session.commit()
         return UserRSchema.model_validate(user, from_attributes=True)
 
+    @classmethod
     async def create_init_user(
-        self,
+        cls,
+        db_session: AsyncSession,
         email: EmailStr,
         password: str,
     ):
-        user = await self.db_session.scalar(
+        user = await db_session.scalar(
             select(User)
             .where(User.email == email)
             .options(
@@ -60,11 +62,10 @@ class UsersService:
         )
         if not user:
             user = User(
-                uid=uuid4(),
                 email=email,
-                password=self.hash_password(password),
+                password=cls.hash_password(password),
             )
-            self.db_session.add(user)
+            db_session.add(user)
         user.permissions.clear()
         for c in PermissionCode.__members__.values():
             user.permissions.append(
@@ -72,14 +73,15 @@ class UsersService:
                     code=c,
                 )
             )
-        await self.db_session.commit()
+        await db_session.commit()
 
+    @staticmethod
     async def auth_user(
-        self,
+        db_session: AsyncSession,
         email: EmailStr,
         password: str,
     ) -> User | None:
-        user = await self.db_session.scalar(select(User).where(User.email == email))
+        user = await db_session.scalar(select(User).where(User.email == email))
         if not user:
             return None
         if not bcrypt.checkpw(
@@ -107,7 +109,7 @@ class UsersService:
             async for user in await self.db_session.stream_scalars(select(User))
         ]
 
-    async def get_user(self, user_uid: UUID) -> UserRSchema | None:
+    async def get_user(self, user_uid: int) -> UserRSchema | None:
         user = await self.get_user_or_none(
             user_uid,
             join_permissions=True,
@@ -118,7 +120,7 @@ class UsersService:
 
     async def get_user_or_none(
         self,
-        user_uid: UUID,
+        user_uid: int,
         *,
         join_permissions: bool = False,
     ) -> User | None:

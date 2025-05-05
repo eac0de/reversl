@@ -32,6 +32,9 @@ class FileMessageRLSchema(BaseModel):
     name: str = Field(
         title="File name",
     )
+    mime_type: str = Field(
+        title="File MIME type",
+    )
 
 
 class MessageRLSchema(BaseModel):

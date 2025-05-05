@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -35,7 +34,7 @@ class Message(Base):
         default=utcdatetime.now,
         comment="Message created at",
     )
-    user_uid: Mapped[UUID | None] = mapped_column(
+    user_uid: Mapped[int | None] = mapped_column(
         ForeignKey("users.uid"),
         comment="User ID",
     )
