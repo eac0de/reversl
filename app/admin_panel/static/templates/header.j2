@@ -1,0 +1,42 @@
+<div class="h-100 d-flex align-items-center text-decoration-none gap-4 fs-5 fw-medium">
+    <a href="{% if request.scope['route'].name not in ['admin_panel_home'] %}{{ url_for('admin_panel_home') }}{% else %}#{% endif %}"
+        class="d-flex align-items-center text-decoration-none text-black" style="gap: 0.5rem;">
+        <span class="material-symbols-outlined fs-2">emoji_people</span>
+        <span>Reversl Admin Panel</span>
+    </a>
+    {% if "R_USER" in request.user.permissions %}
+    <hr style="width: 1px; height: 50%; background-color: black;">
+    <a href="{% if request.scope['route'].name not in ['admin_panel_users','admin_panel_user'] %}{{ url_for('admin_panel_users') }}{% else %}#{% endif %}"
+        class="nav-link {% if request.scope['route'].name in ['admin_panel_users','admin_panel_user'] %}active{% endif %}"
+        aria-current="page">
+        Users
+    </a>
+    {% endif %}
+    {% if "R_CHAT" in request.user.permissions %}
+    <hr style="width: 1px; height: 50%; background-color: black;">
+    <a href="{% if request.scope['route'].name not in ['admin_panel_chats','admin_panel_chat'] %}{{ url_for('admin_panel_chats') }}{% else %}#{% endif %}"
+        class="nav-link {% if request.scope['route'].name in ['admin_panel_chats','admin_panel_chat'] %}active{% endif %}"
+        aria-current="page">
+        Chats
+    </a>
+    {% endif %}
+</div>
+<div class="dropdown-center">
+    <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <img src="https://github.com/eac0de.png" alt="" width="32" height="32" class="rounded-circle me-2">
+        {{ (request.user.full_name if request.user.full_name else
+        request.user.email)|truncate(30,
+        True,
+        '..') }}
+    </button>
+    <ul class="dropdown-menu w-100">
+        <li><a class="dropdown-item" href="#">Settings</a></li>
+        <hr class="dropdown-divider">
+        <li>
+            <form action="{{ url_for('admin_panel_logout') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+                <button type="submit" class="dropdown-item">Sign out</button>
+            </form>
+        </li>
+    </ul>
+</div>
