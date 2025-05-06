@@ -1,4 +1,5 @@
 from typing import Any
+
 from fastapi import Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
@@ -6,16 +7,15 @@ from sqlalchemy.orm import joinedload
 
 from app.core.exceptions import ResponseException
 from app.database import DBSessionDep
+from app.dependencies.auth import Auth, AuthDep
 from app.models.permission import PermissionCode
 from app.models.user import User
 from app.services.users_service import UsersService
-from app.web.dependencies.auth import Auth, AuthDep
 
 
 def UserDep(
     *permission_codes: PermissionCode,
 ) -> Any:
-
     permission_codes_set = set(permission_codes)
 
     async def _check_permissions_and_get_user(

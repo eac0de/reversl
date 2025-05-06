@@ -22,7 +22,7 @@ class WithFullName(BaseModel):
     )
 
     @property
-    def full_name(self):
+    def full_name(self) -> str:
         return f"{self.first_name or ''} {self.last_name or ''} {self.patronymic_name or ''}".strip()
 
 

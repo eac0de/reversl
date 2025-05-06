@@ -17,7 +17,6 @@ from app.utils.file_streamer import FileStreamer
 
 
 class ChatsService:
-
     def __init__(
         self,
         db_session: AsyncSession,
@@ -108,13 +107,14 @@ class ChatsService:
         chat_uid: int,
     ) -> Chat | None:
         stmt = select(Chat).where(Chat.uid == chat_uid)
-        return await self.db_session.scalar(stmt)
+        chat = await self.db_session.scalar(stmt)
+        return chat
 
     async def create_message(
         self,
         chat_uid: int,
         schema: MessageCSchema,
-    ):
+    ) -> None:
         message = Message(
             chat_uid=chat_uid,
             text=schema.text,

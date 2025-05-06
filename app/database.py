@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends
@@ -22,7 +23,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
-async def get_db_session():
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with get_session() as session:
         yield session
 

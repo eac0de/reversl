@@ -18,14 +18,18 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class ProcessTimeMiddleware:
-
-    def __init__(self, app: ASGIApp):
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
         start_time = time.time()
 
-        async def send_with_process_time(message: Message):
+        async def send_with_process_time(message: Message) -> None:
             if message["type"] == "http.response.start":
                 process_time = time.time() - start_time
                 headers = MutableHeaders(raw=message["headers"])

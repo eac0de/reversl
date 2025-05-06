@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.config import settings
-from app.models.chat import Chat
 from app.models.message import Message
 from app.models.message_file import MessageFile
 from app.schemas.messages import FileMessageRLSchema, MessageCSchema, MessageRLSchema
@@ -101,7 +100,6 @@ class APIService:
         self,
         message: Message,
     ) -> MessageRLSchema:
-
         return MessageRLSchema(
             uid=message.uid,
             text=message.text,

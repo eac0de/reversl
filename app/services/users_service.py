@@ -11,7 +11,6 @@ from app.schemas.users import UserCSchema, UserLSchema, UserRSchema
 
 
 class UsersService:
-
     def __init__(
         self,
         db_session: AsyncSession,
@@ -52,7 +51,7 @@ class UsersService:
         db_session: AsyncSession,
         email: EmailStr,
         password: str,
-    ):
+    ) -> None:
         user = await db_session.scalar(
             select(User)
             .where(User.email == email)
@@ -127,4 +126,5 @@ class UsersService:
         stmt = select(User).where(User.uid == user_uid)
         if join_permissions:
             stmt = stmt.options(joinedload(User.permissions))
-        return await self.db_session.scalar(stmt)
+        user = await self.db_session.scalar(stmt)
+        return user

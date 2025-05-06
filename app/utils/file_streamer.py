@@ -13,7 +13,7 @@ class FileStreamer:
     Class for streaming a file in chunks from a given file path.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         filepath: str | Path,
         chunk_size: int = 1024,
@@ -60,7 +60,6 @@ class FileStreamer:
         try:
             async with aiofiles.open(
                 file=self.filepath,
-                mode="r",
                 encoding=self._encoding,
             ) as f:
                 while True:

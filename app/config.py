@@ -23,10 +23,12 @@ class Settings(BaseSettings):
 
     REVERSL_URL_PREFIX: Annotated[str, BeforeValidator(lambda v: v.strip("/"))] = ""
 
+    REVERSL_CSRF_TOKEN_KEY: str = "reversl-csrf-token"
+
     FILES_PATH: Path = Path(__file__).parent.parent.joinpath("data", "files")
 
     @property
-    def DATABASE_DSN(self):
+    def DATABASE_DSN(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 

@@ -1,20 +1,20 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import DBSessionDep
+from app.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
+from app.dependencies.csrf_protect import CSRFProtectDep
+from app.dependencies.users import UserDep
 from app.models.permission import PermissionCode
 from app.models.user import User
 from app.schemas.auth import LoginSchema
 from app.schemas.messages import MessageCSchema
 from app.services.chats_service import ChatsService
 from app.services.users_service import UsersService
-from app.web.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
-from app.web.dependencies.csrf import CSRFProtectDep
-from app.web.dependencies.users import UserDep
 
 router = APIRouter(
     tags=["Admin panel"],
@@ -24,7 +24,7 @@ router = APIRouter(
 )
 
 templates = Jinja2Templates(
-    directory=settings.PROJECT_DIR.joinpath("web", "admin_panel", "static", "templates")
+    directory=settings.PROJECT_DIR.joinpath("admin_panel", "static", "templates")
 )
 
 
@@ -34,7 +34,7 @@ templates = Jinja2Templates(
 )
 async def get_auth_page(
     request: Request,
-):
+) -> Response:
     if request.cookies.get(ADMIN_PANEL_TOKEN_KEY):
         return RedirectResponse(url=request.url_for("admin_panel_home"))
     context = {
@@ -54,8 +54,8 @@ async def get_auth_page(
 async def login(
     request: Request,
     db_session: DBSessionDep,
-    schema: LoginSchema = Form(),
-):
+    schema: Annotated[LoginSchema, Form()],
+) -> Response:
     user = await UsersService.auth_user(
         db_session=db_session,
         email=schema.email,
@@ -80,7 +80,7 @@ async def login(
 )
 async def logout(
     request: Request,
-):
+) -> Response:
     response = RedirectResponse(
         url=request.url_for("admin_panel_auth"),
         status_code=303,
@@ -98,7 +98,7 @@ async def logout(
 )
 async def get_home_page(
     request: Request,
-):
+) -> Response:
     context = {
         "request": request,
     }
@@ -117,7 +117,7 @@ async def get_users_page(
     db_session: DBSessionDep,
     user: Annotated[User, UserDep(PermissionCode.R_USER)],
     request: Request,
-):
+) -> Response:
     users_service = UsersService(
         db_session=db_session,
         user_uid=user.uid,
@@ -142,7 +142,7 @@ async def get_user_page(
     user: Annotated[User, UserDep(PermissionCode.R_USER)],
     db_session: DBSessionDep,
     request: Request,
-):
+) -> Response:
     users_service = UsersService(
         db_session=db_session,
         user_uid=user.uid,
@@ -170,7 +170,7 @@ async def get_chats_page(
     db_session: DBSessionDep,
     user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     request: Request,
-):
+) -> Response:
     chats_service = ChatsService(
         db_session=db_session,
         user_uid=user.uid,
@@ -198,7 +198,7 @@ async def get_chat_page(
     user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     request: Request,
     chat_uid: int,
-):
+) -> Response:
     chats_service = ChatsService(
         db_session=db_session,
         user_uid=user.uid,
@@ -227,7 +227,7 @@ async def download_message_file(
     db_session: DBSessionDep,
     user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     file_uid: int,
-):
+) -> Response:
     chats_service = ChatsService(
         db_session=db_session,
         user_uid=user.uid,
@@ -254,8 +254,8 @@ async def send_message(
     request: Request,
     chat_uid: int,
     user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
-    schema: MessageCSchema = Form(media_type="multipart/form-data"),
-):
+    schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
+) -> Response:
     chats_service = ChatsService(
         db_session=db_session,
         user_uid=user.uid,

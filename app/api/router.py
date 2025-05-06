@@ -1,10 +1,12 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Form
 from fastapi.responses import StreamingResponse
 
 from app.database import DBSessionDep
+from app.dependencies.auth import ChatDep
 from app.schemas.messages import MessageCSchema, MessageRLSchema
 from app.services.api_service import APIService
-from app.web.dependencies.auth import ChatDep
 
 router = APIRouter()
 
@@ -16,11 +18,11 @@ router = APIRouter()
 async def create_message(
     db_session: DBSessionDep,
     chat_auth: ChatDep,
-    schema: MessageCSchema = Form(media_type="multipart/form-data"),
+    schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
 ) -> MessageRLSchema:
     api_service = APIService(
         db_session=db_session,
-        chat_uid=chat_auth.chat_uid,
+        chat_uid=chat_auth.uid,
     )
     return await api_service.create_message(schema)
 
@@ -35,7 +37,7 @@ async def get_messages_list(
 ) -> list[MessageRLSchema]:
     api_service = APIService(
         db_session=db_session,
-        chat_uid=chat_auth.chat_uid,
+        chat_uid=chat_auth.uid,
     )
     return await api_service.get_messages_list()
 
@@ -51,7 +53,7 @@ async def download_message_file(
 ) -> StreamingResponse:
     api_service = APIService(
         db_session=db_session,
-        chat_id=chat.uid,
+        chat_uid=chat.uid,
     )
     file_streamer = await api_service.download_message_file(
         file_uid=file_uid,

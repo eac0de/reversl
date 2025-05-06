@@ -4,10 +4,11 @@ import jwt
 from fastapi import Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.exceptions import ResponseException
-from app.database import DBSessionDep
+from app.database import get_db_session
 from app.models.chat import Chat
 
 NotAuthenticatedException = HTTPException(
@@ -45,7 +46,6 @@ class ChatAuthPayloadSchema(BaseModel):
 
 
 class Auth:
-
     @classmethod
     def set_session_cookie(
         cls,
@@ -97,7 +97,7 @@ class Auth:
     async def get_chat_auth_payload(
         cls,
         response: Response,
-        db_session: DBSessionDep,
+        db_session: Annotated[AsyncSession, Depends(get_db_session)],
         token: Annotated[str | None, Cookie(alias=CHAT_TOKEN_KEY)] = None,
     ) -> Chat:
         try:
@@ -107,7 +107,7 @@ class Auth:
             chat = await db_session.get(Chat, payload.chat_uid)
             assert chat is not None
             return chat
-        except:  # pylint: disable=bare-except
+        except Exception:
             chat = Chat()
             db_session.add(chat)
             await db_session.commit()
@@ -126,7 +126,7 @@ class Auth:
 
     @staticmethod
     def _get_payload(token: str) -> dict[str, Any]:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])  # type: ignore
 
 
 AuthDep = Annotated[AuthPayloadSchema, Depends(Auth.get_auth_payload)]
