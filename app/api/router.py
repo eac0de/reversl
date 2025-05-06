@@ -27,6 +27,22 @@ async def create_message(
     return await api_service.create_message(schema)
 
 
+@router.patch(
+    path="/messages/",
+    response_model=MessageRLSchema,
+)
+async def change_chat_info(
+    db_session: DBSessionDep,
+    chat_auth: ChatDep,
+    schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
+) -> MessageRLSchema:
+    api_service = APIService(
+        db_session=db_session,
+        chat_uid=chat_auth.uid,
+    )
+    return await api_service.create_message(schema)
+
+
 @router.get(
     path="/messages/",
     response_model=list[MessageRLSchema],

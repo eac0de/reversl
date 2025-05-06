@@ -1,0 +1,12 @@
+{% extends "base.j2" %}
+{% block main %}
+<header class="shadow text-black">
+    {% include "header.j2" %}
+</header>
+<main>
+    <div class="rounded shadow" style="width: 90%; height: 90%; background-color: white; overflow: hidden;">
+        {% block page %}
+        {% endblock %}
+    </div>
+</main>
+{% endblock %}

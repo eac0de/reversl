@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
@@ -33,14 +33,19 @@ class PermissionCode(str, Enum):
 
 class Permission(Base):
     __tablename__ = "permissions"
+    __table_args__ = (
+        PrimaryKeyConstraint("code", "user_uid", name="permissions_pkey"),
+    )
 
     code: Mapped[PermissionCode] = mapped_column(
-        primary_key=True,
         comment="Permission code",
     )
     user_uid: Mapped[int] = mapped_column(
-        ForeignKey("users.uid"),
-        primary_key=True,
+        ForeignKey(
+            "users.uid",
+            ondelete="CASCADE",
+            name="permissions_user_uid_fkey",
+        ),
         comment="User ID",
     )
 

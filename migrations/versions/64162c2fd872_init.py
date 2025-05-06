@@ -1,12 +1,12 @@
 """init
 
-Revision ID: 4224b70307aa
+Revision ID: 64162c2fd872
 Revises:
-Create Date: 2025-04-29 17:59:47.245728
+Create Date: 2025-05-06 20:33:42.120010
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
@@ -14,10 +14,10 @@ from alembic import op
 import app.core.typess
 
 # revision identifiers, used by Alembic.
-revision: str = "4224b70307aa"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "64162c2fd872"
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -54,7 +54,7 @@ def upgrade() -> None:
         ),
         sa.Column("email", sa.String(length=128), nullable=True, comment="Chat email"),
         sa.Column("rating", sa.SmallInteger(), nullable=False, comment="Chat rating"),
-        sa.PrimaryKeyConstraint("uid"),
+        sa.PrimaryKeyConstraint("uid", name="chats_pkey"),
     )
     op.create_table(
         "users",
@@ -83,7 +83,7 @@ def upgrade() -> None:
         sa.Column(
             "password", sa.String(length=64), nullable=False, comment="User password"
         ),
-        sa.PrimaryKeyConstraint("uid"),
+        sa.PrimaryKeyConstraint("uid", name="users_pkey"),
     )
     op.create_table(
         "messages",
@@ -108,12 +108,13 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["chat_uid"],
             ["chats.uid"],
+            name="messages_chat_uid_fkey",
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["user_uid"],
-            ["users.uid"],
+            ["user_uid"], ["users.uid"], name="messages_user_uid_fkey"
         ),
-        sa.PrimaryKeyConstraint("uid"),
+        sa.PrimaryKeyConstraint("uid", name="messages_pkey"),
     )
     op.create_table(
         "permissions",
@@ -144,8 +145,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["user_uid"],
             ["users.uid"],
+            name="permissions_user_uid_fkey",
+            ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("code", "user_uid"),
+        sa.PrimaryKeyConstraint("code", "user_uid", name="permissions_pkey"),
     )
     op.create_table(
         "message_files",
@@ -164,8 +167,13 @@ def upgrade() -> None:
             "path", app.core.typess.PathType(), nullable=False, comment="File path"
         ),
         sa.Column("message_uid", sa.Integer(), nullable=False, comment="Message ID"),
-        sa.ForeignKeyConstraint(["message_uid"], ["messages.uid"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("uid"),
+        sa.ForeignKeyConstraint(
+            ["message_uid"],
+            ["messages.uid"],
+            name="message_files_message_uid_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("uid", name="message_files_pkey"),
     )
     # ### end Alembic commands ###
 

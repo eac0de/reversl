@@ -1,8 +1,7 @@
-<div class="h-100 d-flex align-items-center text-decoration-none gap-4 fs-5 fw-medium">
+<div class="h-100 d-flex align-items-center text-decoration-none gap-4 fs-5 fw-normal">
     <a href="{% if request.scope['route'].name not in ['admin_panel_home'] %}{{ url_for('admin_panel_home') }}{% else %}#{% endif %}"
         class="d-flex align-items-center text-decoration-none text-black" style="gap: 0.5rem;">
-        <span class="material-symbols-outlined fs-2">emoji_people</span>
-        <span>Reversl Admin Panel</span>
+        Reversl Admin Panel
     </a>
     {% if "R_USER" in request.user.permissions %}
     <hr style="width: 1px; height: 50%; background-color: black;">
@@ -22,7 +21,7 @@
     {% endif %}
 </div>
 <div class="dropdown-center">
-    <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         <img src="https://github.com/eac0de.png" alt="" width="32" height="32" class="rounded-circle me-2">
         {{ (request.user.full_name if request.user.full_name else
         request.user.email)|truncate(30,

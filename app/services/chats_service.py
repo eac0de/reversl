@@ -12,7 +12,12 @@ from app.models.chat import Chat
 from app.models.message import Message
 from app.models.message_file import MessageFile
 from app.schemas.chats import ChatLSchema, ChatRSchema
-from app.schemas.messages import FileMessageRLSchema, MessageCSchema, MessageRLSchema
+from app.schemas.messages import (
+    FileMessageRLSchema,
+    MessageCSchema,
+    MessageRLSchema,
+    UserMessageRLSchema,
+)
 from app.utils.file_streamer import FileStreamer
 
 
@@ -75,6 +80,7 @@ class ChatsService:
             .where(Message.chat_uid == chat_uid)
             .options(
                 joinedload(Message.files),
+                joinedload(Message.user),
             )
             .limit(limit)
             .offset(offset)
@@ -88,6 +94,15 @@ class ChatsService:
                     FileMessageRLSchema(uid=f.uid, name=f.name, mime_type=f.mime_type)
                     for f in msg.files
                 ],
+                user=UserMessageRLSchema(
+                    uid=msg.user.uid,
+                    email=msg.user.email,
+                    first_name=msg.user.first_name,
+                    last_name=msg.user.last_name,
+                    patronymic_name=msg.user.patronymic_name,
+                )
+                if msg.user
+                else None,
                 created_at=msg.created_at,
             )
             for msg in result.unique().scalars()

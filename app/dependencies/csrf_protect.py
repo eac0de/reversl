@@ -13,6 +13,7 @@ async def verify_csrf_token(request: Request) -> None:
                 status_code=403,
                 detail="Invalid CSRF token",
             )
+    
 
 
 CSRFProtectDep = Depends(verify_csrf_token)

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from anyio import Path
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, PrimaryKeyConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.typess import PathType
@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 class MessageFile(Base):
     __tablename__ = "message_files"
+    __table_args__ = (PrimaryKeyConstraint("uid", name="message_files_pkey"),)
 
     uid: Mapped[int] = mapped_column(
-        primary_key=True,
         autoincrement=True,
         comment="Message file ID",
     )
@@ -33,7 +33,11 @@ class MessageFile(Base):
         comment="File path",
     )
     message_uid: Mapped[int] = mapped_column(
-        ForeignKey("messages.uid", ondelete="CASCADE"),
+        ForeignKey(
+            "messages.uid",
+            ondelete="CASCADE",
+            name="message_files_message_uid_fkey",
+        ),
         comment="Message ID",
     )
 

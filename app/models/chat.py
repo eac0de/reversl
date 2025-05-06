@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import SmallInteger, String
+from sqlalchemy import PrimaryKeyConstraint, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
@@ -11,9 +11,9 @@ if TYPE_CHECKING:
 
 class Chat(Base):
     __tablename__ = "chats"
+    __table_args__ = (PrimaryKeyConstraint("uid", name="chats_pkey"),)
 
     uid: Mapped[int] = mapped_column(
-        primary_key=True,
         autoincrement=True,
         comment="Chat ID",
     )

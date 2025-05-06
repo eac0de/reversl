@@ -2,6 +2,7 @@ from fastapi import UploadFile
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.typess import utcdatetime
+from app.schemas.users import WithFullName
 
 
 class MessageCSchema(BaseModel):
@@ -37,6 +38,15 @@ class FileMessageRLSchema(BaseModel):
     )
 
 
+class UserMessageRLSchema(WithFullName):
+    uid: int = Field(
+        title="User ID",
+    )
+    email: str = Field(
+        title="User email",
+    )
+
+
 class MessageRLSchema(BaseModel):
     uid: int = Field(
         title="Message ID",
@@ -51,4 +61,8 @@ class MessageRLSchema(BaseModel):
     )
     created_at: utcdatetime = Field(
         title="Message created at",
+    )
+    user: UserMessageRLSchema | None = Field(
+        default=None,
+        title="Message author",
     )
