@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Request, Response
@@ -5,6 +6,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
+from app.core.exceptions import ResponseException
 from app.database import DBSessionDep
 from app.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
 from app.dependencies.csrf_protect import CSRFProtectDep
@@ -206,11 +208,13 @@ async def get_chat_page(
     chat = await chats_service.get_chat(chat_uid)
     if not chat:
         return RedirectResponse(url=request.url_for("admin_panel_chats"))
+    m = await chats_service.get_chat_messages(chat.uid)
+    pprint(m)
     context = {
         "request": request,
         "chats": await chats_service.get_chats_list(),
         "selected_chat": chat,
-        "messages": await chats_service.get_chat_messages(chat.uid),
+        "messages": m,
     }
     response = templates.TemplateResponse(
         name="chats.j2",
@@ -255,22 +259,21 @@ async def send_message(
     chat_uid: int,
     user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
-) -> Response:
+) -> None:
     chats_service = ChatsService(
         db_session=db_session,
         user_uid=user.uid,
     )
     chat = await chats_service.get_chat(chat_uid)
     if not chat:
-        return RedirectResponse(
-            url=request.url_for("admin_panel_chats"),
-            status_code=303,
+        raise ResponseException(
+            RedirectResponse(
+                url=request.url_for("admin_panel_chats"),
+                status_code=303,
+            )
         )
     await chats_service.create_message(
         chat_uid=chat.uid,
+        user_uid=user.uid,
         schema=schema,
-    )
-    return RedirectResponse(
-        url=request.url_for("admin_panel_chat", chat_uid=chat.uid),
-        status_code=303,
     )

@@ -30,19 +30,30 @@
         <div class="d-flex flex-column h-100 w-100 p-3">
             <h3 class="align-self-center">Chat {{selected_chat.uid}}</h3>
             {# Messages #}
-            <div class="d-flex flex-column flex-1 p-3" style="overflow-y: auto; ">
-                {% for msg in messages %}
+            <div class="d-flex flex-column-reverse flex-1 p-3 overflow-y-auto scrollarea rounded h-100"
+                style="border: 1px solid #ccc;">
+                {% for msg in messages | reverse %}
                 <div
                     class="d-flex mb-3 {% if msg.is_outgoing %}justify-content-end{% else %}justify-content-start{% endif %}">
                     <div class="p-2 px-3 rounded-3 
-                                    {% if msg.is_outgoing %}
+                                    {% if msg.user %}
                                         bg-primary text-white
                                     {% else %}
                                         bg-light border
                                     {% endif %}" style="max-width: 30%;">
+                        {% if msg.user %}
+                        <a href="{{ url_for('admin_panel_user', user_uid=msg.user.uid) }}"
+                            class="bg-secondary p-1 rounded text-white text-decoration-none">
+                            Sender: {{ msg.user.email }}
+                        </a>
+                        {% endif %}
+
+
+                        {% if msg.text %}
                         <div class="mb-1">
                             {{ msg.text }}
                         </div>
+                        {% endif %}
 
                         {% for file in msg.files | reverse %}
                         {% if file.mime_type in ["image/jpeg", "image/png"] %}
@@ -60,6 +71,99 @@
                 {% endfor %}
             </div>
             {# Messages END #}
+            <div class="input-group my-3">
+                <button class="btn" type="button" id="file-button">Add file</button>
+                <textarea style="resize: none;" class="form-control scrollarea" id="message-input" rows="1"
+                    aria-label="With textarea"></textarea>
+                <button class="btn" type="button" id="send-button">Send</button>
+            </div>
+            <input type="file" id="file-input" multiple>
+            <div id="file-list" class="scrollarea" style="max-height: 100px;"></div>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const textarea = document.getElementById('message-input');
+                    const maxHeight = 150;
+
+                    const fileInput = document.getElementById('file-input');
+                    const fileButton = document.getElementById('file-button');
+                    const sendButton = document.getElementById('send-button');
+                    const fileList = document.getElementById('file-list');
+                    let storedFiles = []; // Массив для хранения файлов
+
+                    function resizeTextarea() {
+                        textarea.style.height = 'auto';
+                        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+                        textarea.style.height = `${newHeight}px`;
+                        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+                    }
+                    textarea.addEventListener('input', resizeTextarea);
+
+                    function updateFileList() {
+                        fileList.innerHTML = '';
+                        storedFiles.forEach((file, index) => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'file-item';
+                            fileItem.innerHTML = `
+                        <span>${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
+                        <button class="btn btn-sm btn-outline-danger" data-index="${index}">Delete</button>
+                    `;
+                            fileList.appendChild(fileItem);
+                        });
+
+                        // Обработчики кнопок удаления
+                        fileList.querySelectorAll('button').forEach(button => {
+                            button.addEventListener('click', () => {
+                                const index = parseInt(button.dataset.index);
+                                storedFiles.splice(index, 1);
+                                updateFileList();
+                            });
+                        });
+                    }
+                    // Обработка выбора файлов
+                    fileInput.addEventListener('change', () => {
+                        const newFiles = Array.from(fileInput.files);
+                        if (newFiles.length + storedFiles.length > 10) {
+                            alert('Maximum number of files is 10.');
+                            return;
+                        }
+                        storedFiles = [...storedFiles, ...newFiles];
+                        updateFileList();
+                        fileInput.value = ''; // Очищаем input для повторного выбора
+                    });
+
+                    // Активация input file при клике на кнопку "Add file"
+                    fileButton.addEventListener('click', () => {
+                        fileInput.click();
+                    });
+
+                    // Отправка данных
+                    sendButton.addEventListener('click', () => {
+                        const formData = new FormData();
+                        formData.append('csrf_token', '{{ request.state.csrf_token }}');
+                        formData.append('text', textarea.value);
+                        storedFiles.forEach(file => {
+                            formData.append('files', file);
+                        });
+
+                        fetch('{{ url_for("admin_panel_send_message", chat_uid=selected_chat.uid) }}', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Успех:', data);
+                                // Очистка после отправки
+                                textarea.value = '';
+                                storedFiles = [];
+                                updateFileList();
+                                resizeTextarea();
+                            })
+                            .catch(error => {
+                                console.error('Ошибка:', error);
+                            });
+                    });
+                });
+            </script>
         </div>
     </div>
     {% endif %}

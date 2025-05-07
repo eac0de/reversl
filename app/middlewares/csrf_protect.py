@@ -12,13 +12,10 @@ class CSRFProtectMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: RequestResponseEndpoint,
     ) -> Response:
-        # TODO исправить, CSRF меняется при любом запросе, даже не относящихся к админ панели
-        if (
-            not request.scope.get("route")
-            or "admin_panel" not in request.scope["route"].name
-        ):
-            return await call_next(request)
-        csrf_token = secrets.token_urlsafe(32)
+        if csrf_token := request.cookies.get(settings.REVERSL_CSRF_TOKEN_KEY):
+            pass
+        else:
+            csrf_token = secrets.token_urlsafe(32)
         request.state.csrf_token = csrf_token
         response = await call_next(request)
         response.set_cookie(

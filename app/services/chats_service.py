@@ -72,7 +72,7 @@ class ChatsService:
     async def get_chat_messages(
         self,
         chat_uid: int,
-        limit: int = 10,
+        limit: int = 30,
         offset: int = 0,
     ) -> list[MessageRLSchema]:
         stmt = (
@@ -84,6 +84,7 @@ class ChatsService:
             )
             .limit(limit)
             .offset(offset)
+            .order_by(Message.created_at.asc())
         )
         result = await self.db_session.execute(stmt)
         return [
@@ -128,12 +129,14 @@ class ChatsService:
     async def create_message(
         self,
         chat_uid: int,
+        user_uid: int,
         schema: MessageCSchema,
     ) -> None:
         message = Message(
             chat_uid=chat_uid,
             text=schema.text,
             files=[],
+            user_uid=user_uid,
         )
         self.db_session.add(message)
 
