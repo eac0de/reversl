@@ -1,1 +1,1 @@
-FROM python
+FROM python3.12.10-slim

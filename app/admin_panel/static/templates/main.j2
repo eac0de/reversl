@@ -1,12 +1,49 @@
 {% extends "base.j2" %}
 {% block main %}
-<header class="shadow text-black">
-    {% include "header.j2" %}
-</header>
-<main>
-    <div class="rounded shadow" style="width: 90%; height: 90%; background-color: white; overflow: hidden;">
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow">
+    <div class="container-fluid">
+        <!-- Логотип / Название -->
+        <a class="navbar-brand" href="#">Reversl Admin Panel</a>
+
+        <!-- Кнопка "бургер" для мобильных -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Сворачиваемое меню -->
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <!-- Навигация справа -->
+            <ul class="navbar-nav ms-auto">
+                {% set active = 'active' if request.scope['route'].name == 'admin_panel_home' else
+                '' %}
+                <li class="nav-item"><a class="nav-link {{active}}"
+                        href="{% if not active %}{{ url_for('admin_panel_home') }}{% else %}#{% endif %}">Home</a>
+                </li>
+
+                {% if "R_USER" in request.user.permissions %}
+                {% set active = 'active' if request.scope['route'].name in ['admin_panel_users','admin_panel_user'] else
+                '' %}
+                <li class="nav-item"><a class="nav-link {{active}}"
+                        href="{% if not active %}{{ url_for('admin_panel_users') }}{% else %}#{% endif %}">Users</a>
+                </li>
+                {% endif %}
+
+                {% if "R_CHAT" in request.user.permissions %}
+                {% set active = 'active' if request.scope['route'].name in ['admin_panel_chats','admin_panel_chat'] else
+                '' %}
+                <li class="nav-item"><a class="nav-link {{active}}"
+                        href="{% if not active %}{{ url_for('admin_panel_chats') }}{% else %}#{% endif %}">Chats</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="d-flex flex-column justify-content-center align-items-center" style="height: calc(100% - 56px);">
+    <div class="d-flex flex-row shadow rounded overflow-hidden" style="width: 90%; height: 90%;">
         {% block page %}
         {% endblock %}
     </div>
-</main>
+</div>
 {% endblock %}
