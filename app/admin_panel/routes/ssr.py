@@ -2,28 +2,22 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.datastructures import URL
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 
 from app.config import settings
-from app.core.exceptions import ResponseException
 from app.database import DBSessionDep
 from app.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
-from app.dependencies.csrf_protect import CSRFProtectDep
 from app.dependencies.users import UserDep
-from app.models.permission import PermissionCode
+from app.models.permission import PERMISSION_CODE_TO_NAME_MAP, PermissionCode
 from app.models.user import User
 from app.schemas.auth import LoginSchema
-from app.schemas.messages import MessageCSchema
 from app.services.chats_service import ChatsService
 from app.services.users_service import UsersService
 
 router = APIRouter(
-    tags=["Admin panel"],
-    dependencies=[
-        CSRFProtectDep,
-    ],
+    tags=["ssr"],
 )
 
 static_path = settings.PROJECT_DIR.joinpath("admin_panel", "static")
@@ -185,6 +179,7 @@ async def get_user_page(
         "request": request,
         "users": await users_service.get_users_list(),
         "selected_user": selected_user,
+        "permission_code_to_name_map": PERMISSION_CODE_TO_NAME_MAP,
     }
     response = templates.TemplateResponse(
         name="users.j2",
@@ -249,59 +244,3 @@ async def get_chat_page(
         context=context,
     )
     return response
-
-
-@router.get(
-    path="/message_files/{file_uid}/",
-    name="admin_panel_download_message_file",
-)
-async def download_message_file(
-    db_session: DBSessionDep,
-    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
-    file_uid: int,
-) -> Response:
-    chats_service = ChatsService(
-        db_session=db_session,
-        user_uid=user.uid,
-    )
-    file_streamer = await chats_service.download_message_file(file_uid)
-    if not file_streamer:
-        raise HTTPException(
-            status_code=404,
-            detail="File not found",
-        )
-    return StreamingResponse(
-        content=file_streamer.get_bytes_stream(),
-        media_type=file_streamer.media_type,
-        headers={"Content-Disposition": file_streamer.content_disposition},
-    )
-
-
-@router.post(
-    path="/chats/{chat_uid}/messages/",
-    name="admin_panel_send_message",
-)
-async def send_message(
-    db_session: DBSessionDep,
-    request: Request,
-    chat_uid: int,
-    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
-    schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
-) -> None:
-    chats_service = ChatsService(
-        db_session=db_session,
-        user_uid=user.uid,
-    )
-    chat = await chats_service.get_chat(chat_uid)
-    if not chat:
-        raise ResponseException(
-            RedirectResponse(
-                url=request.url_for("admin_panel_chats"),
-                status_code=303,
-            )
-        )
-    await chats_service.create_message(
-        chat_uid=chat.uid,
-        user_uid=user.uid,
-        schema=schema,
-    )

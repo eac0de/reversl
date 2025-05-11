@@ -18,13 +18,173 @@
 <div class="flex-grow-1 d-flex">
     <!-- Info panel -->
     <div class="p-3 border-end flex-shrink-0" style="width: 20%;">
-        <h5 class="text-center">Info</h5>
-        <p><strong>First Name:</strong> {{ selected_user.first_name or '-' }}</p>
-        <p><strong>Last Name:</strong> {{ selected_user.last_name or '-' }}</p>
-        <p><strong>Patronymic Name:</strong> {{ selected_user.patronymic_name or '-' }}</p>
-        <p><strong>Email:</strong> {{ selected_user.email or '-' }}</p>
-        <p><strong>Tel.:</strong> {{ selected_user.phone_number or '-' }}</p>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div></div>
+            <h5 class="mb-0">Info</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                data-bs-target="#editUserModal">
+                <i class="bi bi-pencil"></i>
+            </button>
+        </div>
+
+        <div class="mb-3">
+            <p class="mb-1"><strong>First Name:</strong><br> <span id="user-first-name">{{ selected_user.first_name or
+                    '-'
+                    }}</span></p>
+            <p class="mb-1"><strong>Last Name:</strong><br> <span id="user-last-name">{{ selected_user.last_name or '-'
+                    }}</span></p>
+            <p class="mb-1"><strong>Patronymic Name:</strong><br> <span id="user-patronymic-name">{{
+                    selected_user.patronymic_name or '-' }}</span></p>
+        </div>
+
+        <div>
+            <p class="mb-1"><strong>Email:</strong><br> <span id="user-email">{{ selected_user.email or '-' }}</span>
+            </p>
+            <p class="mb-0"><strong>Tel.:</strong><br> <span id="user-phone">{{ selected_user.phone_number or '-'
+                    }}</span></p>
+        </div>
     </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="edit-user-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editUserModalLabel">Edit User Info</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+                        <div class="mb-3">
+                            <label for="first-name" class="form-label">First Name</label>
+                            <input type="text" name="first_name" class="form-control" id="first-name"
+                                value="{{ selected_user.first_name or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="last-name" class="form-label">Last Name</label>
+                            <input type="text" name="last_name" class="form-control" id="last-name"
+                                value="{{ selected_user.last_name or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="patronymic-name" class="form-label">Patronymic Name</label>
+                            <input type="text" name="patronymic_name" class="form-control" id="patronymic-name"
+                                value="{{ selected_user.patronymic_name or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" id="email"
+                                value="{{ selected_user.email }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone-number" class="form-label">Phone</label>
+                            <input type="tel" name="phone_number" class="form-control" id="phone-number"
+                                value="{{ selected_user.phone_number or '' }}">
+                        </div>
+                        <!-- добавь другие поля по необходимости -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('edit-user-form');
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                let formData = new FormData(form);
+                formData.append("csrf_token", window.csrfToken);
+
+                formData.set("first_name", formData.get("first_name").trim());
+                if (formData.get("first_name") == "") {
+                    formData.delete("first_name");
+                }
+
+                formData.set("last_name", formData.get("last_name").trim());
+                if (formData.get("last_name") == "") {
+                    formData.delete("last_name");
+                }
+
+                formData.set("patronymic_name", formData.get("patronymic_name").trim());
+                if (formData.get("patronymic_name") == "") {
+                    formData.delete("patronymic_name");
+                }
+
+                formData.set("phone_number", formData.get("phone_number").trim());
+                if (formData.get("phone_number") == "") {
+                    formData.delete("phone_number");
+                }
+
+                fetch("{{ url_for('admin_panel_update_user', user_uid=selected_user.uid) }}", {
+                    method: "PATCH",
+                    body: formData,
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error("HTTP error " + res.status);
+                        return res.json();
+                    })
+                    .then(data => {
+                        document.getElementById("user-first-name").textContent = data.first_name || "-";
+                        document.getElementById("user-last-name").textContent = data.last_name || "-";
+                        document.getElementById("user-patronymic-name").textContent = data.patronymic_name || "-";
+                        document.getElementById("user-email").textContent = data.email || "-";
+                        document.getElementById("user-phone").textContent = data.phone_number || "-";
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                        modal.hide();
+                    })
+                    .catch(err => {
+                        alert("Failed: " + err.message);
+                    });
+            });
+        });
+    </script>
+
+    {% if "R_PERMISSION" in selected_user.permissions %}
+    <!-- Permissions panel -->
+    <div class="d-flex flex-column p-3 border-end flex-shrink-0" style="width: 20%;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div></div>
+            <h5 class="mb-0">Permissions</h5>
+            <button type="button"
+                class="btn btn-sm btn-outline-primary {% if 'U_PERMISSION' not in selected_user.permissions %}disabled{% endif %}">
+                <i class="bi bi-pencil"></i>
+            </button>
+
+        </div>
+        <table class="table table-bordered  table-sm w-auto">
+            <tbody>
+                {% set perms = {
+                'User': ['C_USER', 'R_USER', 'U_USER', 'D_USER'],
+                'Message': ['C_MESSAGE', 'R_MESSAGE', 'U_MESSAGE', 'D_MESSAGE'],
+                'Chat': ['R_CHAT', 'U_CHAT', 'D_CHAT'],
+                'Permission': ['C_PERMISSION', 'R_PERMISSION', 'U_PERMISSION', 'D_PERMISSION']
+                } %}
+                {% for category, keys in perms.items() %}
+                <tr class="table-secondary">
+                    <td colspan="2"><strong>{{ category }}</strong></td>
+                </tr>
+                {% for key in keys %}
+                <tr>
+                    <td>{{ permission_code_to_name_map[key] }}</td>
+                    <td class="text-center align-middle">
+                        <div class="d-flex h-100 justify-content-center align-items-center">
+                            <i class="bi bi-check2"></i>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 </div>
+
 {% endif %}
 {% endblock %}

@@ -27,3 +27,7 @@ body {
 .scrollarea::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.font-mso {
+  font-family: "Material Symbols Outlined";
+}

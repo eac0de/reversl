@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from starlette import status
 from starlette.middleware.gzip import GZipMiddleware
 
-from app.admin_panel.router import router as admin_panel_router
+from app.admin_panel.routes import router as admin_panel_router
 from app.api.router import router as api_router
 from app.config import settings
 from app.core.exceptions import ResponseException

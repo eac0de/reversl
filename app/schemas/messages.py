@@ -2,7 +2,7 @@ from fastapi import UploadFile
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.typess import utcdatetime
-from app.schemas.users import WithFullName
+from app.schemas.common import WithFullName
 
 
 class MessageCSchema(BaseModel):

@@ -36,8 +36,8 @@
                     style="max-width: 30%;">
                     {% if msg.user %}
                     <a href="{{ url_for('admin_panel_user', user_uid=msg.user.uid) }}"
-                        class="bg-secondary p-1 rounded text-white text-decoration-none align-self-center">
-                        {{ msg.user.email }}
+                        class="bg-secondary p-1 rounded text-white text-decoration-none align-self-center mb-2">
+                        <i class="bi bi-person-fill"></i> {{ msg.user.email }}
                     </a>
                     {% endif %}
 
@@ -95,7 +95,6 @@
     </div>
 </div>
 <script>
-    window.csrfToken = "{{ request.state.csrf_token }}";
     window.sendMessageURL = "{{ url_for('admin_panel_send_message', chat_uid=selected_chat.uid) }}";
 </script>
 <script src="{{ get_static_url('js', 'chat.js') }}"></script>

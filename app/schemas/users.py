@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.common import WithEmail, WithFullName, WithPhoneNumber
+
 
 class UserCSchema(BaseModel):
     email: EmailStr = Field(
@@ -10,32 +12,24 @@ class UserCSchema(BaseModel):
     )
 
 
-class WithFullName(BaseModel):
-    first_name: str | None = Field(
-        title="User first name",
-    )
-    last_name: str | None = Field(
-        title="User last name",
-    )
-    patronymic_name: str | None = Field(
-        title="User patronymic name",
-    )
-
-    @property
-    def full_name(self) -> str:
-        return f"{self.first_name or ''} {self.last_name or ''} {self.patronymic_name or ''}".strip()
+class UserUSchema(
+    WithFullName,
+    WithEmail,
+    WithPhoneNumber,
+):
+    pass
 
 
-class UserRSchema(WithFullName):
+class UserRSchema(WithFullName, WithPhoneNumber):
     uid: int = Field(
         title="User ID",
     )
     email: EmailStr = Field(
         title="User email",
     )
-    phone_number: str | None = Field(
-        title="User phone number",
-    )
+
+
+class UserRSchemaWithPermissions(UserRSchema):
     permissions: list[str] = Field(
         default_factory=list,
         title="User permissions",

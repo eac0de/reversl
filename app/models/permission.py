@@ -31,6 +31,25 @@ class PermissionCode(str, Enum):
     D_PERMISSION = "D_PERMISSION"
 
 
+PERMISSION_CODE_TO_NAME_MAP: dict[PermissionCode, str] = {
+    PermissionCode.C_USER: "Create user",
+    PermissionCode.R_USER: "Read user",
+    PermissionCode.U_USER: "Update user",
+    PermissionCode.D_USER: "Delete user",
+    PermissionCode.C_MESSAGE: "Create message",
+    PermissionCode.R_MESSAGE: "Read message",
+    PermissionCode.U_MESSAGE: "Update message",
+    PermissionCode.D_MESSAGE: "Delete message",
+    PermissionCode.R_CHAT: "Read chat",
+    PermissionCode.U_CHAT: "Update chat",
+    PermissionCode.D_CHAT: "Delete chat",
+    PermissionCode.C_PERMISSION: "Create permission",
+    PermissionCode.R_PERMISSION: "Read permission",
+    PermissionCode.U_PERMISSION: "Update permission",
+    PermissionCode.D_PERMISSION: "Delete permission",
+}
+
+
 class Permission(Base):
     __tablename__ = "permissions"
     __table_args__ = (
