@@ -1,0 +1,29 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bs-body-font-family: "Rubik", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+.scrollarea {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.scrollarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollarea::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.scrollarea::-webkit-scrollbar-track {
+  background: transparent;
+}

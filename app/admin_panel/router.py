@@ -1,9 +1,10 @@
-from pprint import pprint
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Form, HTTPException, Request, Response
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.datastructures import URL
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import pass_context
 
 from app.config import settings
 from app.core.exceptions import ResponseException
@@ -25,9 +26,37 @@ router = APIRouter(
     ],
 )
 
-templates = Jinja2Templates(
-    directory=settings.PROJECT_DIR.joinpath("admin_panel", "static", "templates")
+static_path = settings.PROJECT_DIR.joinpath("admin_panel", "static")
+
+templates = Jinja2Templates(directory=static_path / "templates")
+
+
+@pass_context
+def get_static_url(
+    context: dict[str, Any],
+    *path_parts: str,
+) -> URL:
+    request: Request = context["request"]
+    return request.url_for("admin_panel_static", path="/".join(path_parts))
+
+
+templates.env.globals["get_static_url"] = get_static_url
+
+
+@router.get(
+    path="/static/{path:path}",
+    name="admin_panel_static",
 )
+async def get_static(
+    path: str,
+) -> Response:
+    file_path = static_path.joinpath(*path.split("/"))
+    if not await file_path.exists() or not await file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="File not found",
+        )
+    return FileResponse(file_path)
 
 
 @router.get(
@@ -209,7 +238,6 @@ async def get_chat_page(
     if not chat:
         return RedirectResponse(url=request.url_for("admin_panel_chats"))
     m = await chats_service.get_chat_messages(chat.uid)
-    pprint(m)
     context = {
         "request": request,
         "chats": await chats_service.get_chats_list(),
