@@ -118,7 +118,7 @@ async def logout(
     path="/",
     name="admin_panel_home",
     dependencies=[
-        UserDep(PermissionCode.R_USER),
+        UserDep(),
     ],
 )
 async def get_home_page(

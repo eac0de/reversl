@@ -21,7 +21,7 @@
                         href="{% if not active %}{{ url_for('admin_panel_home') }}{% else %}#{% endif %}">Home</a>
                 </li>
 
-                {% if "R_USER" in request.user.permissions %}
+                {% if "R_USER" in request.user.permission_codes %}
                 {% set active = 'active' if request.scope['route'].name in ['admin_panel_users','admin_panel_user'] else
                 '' %}
                 <li class="nav-item"><a class="nav-link {{active}}"
@@ -29,7 +29,7 @@
                 </li>
                 {% endif %}
 
-                {% if "R_CHAT" in request.user.permissions %}
+                {% if "R_CHAT" in request.user.permission_codes %}
                 {% set active = 'active' if request.scope['route'].name in ['admin_panel_chats','admin_panel_chat'] else
                 '' %}
                 <li class="nav-item"><a class="nav-link {{active}}"

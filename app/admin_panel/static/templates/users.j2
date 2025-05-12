@@ -151,7 +151,7 @@
         });
     </script>
 
-    {% if "R_PERMISSION" in selected_user.permissions %}
+    {% if "R_PERMISSION" in selected_user.permission_codes %}
     {% set perms = {
     'User': ['C_USER', 'R_USER', 'U_USER', 'D_USER'],
     'Message': ['C_MESSAGE', 'R_MESSAGE', 'U_MESSAGE', 'D_MESSAGE'],
@@ -164,7 +164,7 @@
             <div></div>
             <h5 class="mb-0">Permissions</h5>
             <button type="button"
-                class="btn btn-sm btn-outline-primary {% if 'U_PERMISSION' not in selected_user.permissions %}disabled{% endif %}"
+                class="btn btn-sm btn-outline-primary {% if 'U_PERMISSION' not in selected_user.permission_codes %}disabled{% endif %}"
                 data-bs-toggle="modal" data-bs-target="#editPermissionsModal">
                 <i class="bi bi-pencil"></i>
             </button>
@@ -182,7 +182,7 @@
                     <td class="text-center align-middle">
                         <div class="d-flex h-100 justify-content-center align-items-center">
 
-                            <i class="bi bi-{{ 'check' if key in selected_user.permissions else 'x' }}"></i>
+                            <i class="bi bi-{{ 'check' if key in selected_user.permission_codes else 'x' }}"></i>
                         </div>
                     </td>
                 </tr>
@@ -209,7 +209,8 @@
                             {% for perm in keys %}
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="permissions" id="perm-{{ perm }}"
-                                    value="{{ perm }}" {% if perm in selected_user.permissions %}checked{% endif %}>
+                                    value="{{ perm }}" {% if perm in selected_user.permission_codes %}checked{% endif
+                                    %}>
                                 <label class="form-check-label" for="perm-{{ perm }}">
                                     {{ permission_code_to_name_map[perm] }}
                                 </label>
@@ -235,7 +236,7 @@
                 e.preventDefault();
 
                 const checkboxes = document.querySelectorAll('input[name="permissions"]:checked');
-                const permissions = Array.from(checkboxes).map(cb => cb.value);
+                const permission_codes = Array.from(checkboxes).map(cb => cb.value);
 
                 fetch("{{ url_for('admin_panel_update_user_permissions', user_uid=selected_user.uid) }}", {
                     method: "PATCH",
@@ -243,7 +244,7 @@
                         "Content-Type": "application/json",
                         "X-CSRF-Token": window.csrfToken  // если требуется
                     },
-                    body: JSON.stringify({ permissions })
+                    body: JSON.stringify({ permission_codes })
                 })
                     .then(res => {
                         if (!res.ok) throw new Error("HTTP error " + res.status);

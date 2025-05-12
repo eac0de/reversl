@@ -1,3 +1,5 @@
+from copy import copy
+
 import bcrypt
 from fastapi import HTTPException, status
 from pydantic import EmailStr
@@ -8,7 +10,7 @@ from sqlalchemy.orm import joinedload
 from app.models.permission import Permission, PermissionCode
 from app.models.user import User
 from app.schemas.users import (
-    PermissionsSchema,
+    PermissionCodesSchema,
     UserCSchema,
     UserLSchema,
     UserRSchemaWithPermissions,
@@ -105,7 +107,7 @@ class UsersService:
             last_name=user.last_name,
             patronymic_name=user.patronymic_name,
             phone_number=user.phone_number,
-            permissions={p.code for p in user.permissions},
+            permission_codes={p.code for p in user.permissions},
         )
 
     async def get_users_list(self) -> list[UserLSchema]:
@@ -150,10 +152,15 @@ class UsersService:
     async def update_user_permissions(
         self,
         user: User,
-        schema: PermissionsSchema,
+        schema: PermissionCodesSchema,
     ) -> User:
+        validated_permission_codes = copy(schema.permission_codes)
+        for c in schema.permission_codes:
+            if c.startswith(("U_", "D_")):
+                validated_permission_codes.add(PermissionCode("R_" + c[2:]))
+        schema.permission_codes = validated_permission_codes
         user.permissions.clear()
-        for c in schema.permissions:
+        for c in schema.permission_codes:
             user.permissions.append(
                 Permission(
                     code=c,

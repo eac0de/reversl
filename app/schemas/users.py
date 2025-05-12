@@ -30,8 +30,8 @@ class UserRSchema(WithFullName, WithPhoneNumber):
     )
 
 
-class PermissionsSchema(BaseModel):
-    permissions: set[PermissionCode] = Field(
+class PermissionCodesSchema(BaseModel):
+    permission_codes: set[PermissionCode] = Field(
         default_factory=set,
         title="User permissions",
     )
@@ -39,7 +39,7 @@ class PermissionsSchema(BaseModel):
 
 class UserRSchemaWithPermissions(
     UserRSchema,
-    PermissionsSchema,
+    PermissionCodesSchema,
 ):
     pass
 

@@ -9,7 +9,7 @@ from app.dependencies.users import UserDep
 from app.models.permission import PermissionCode
 from app.models.user import User
 from app.schemas.messages import MessageCSchema
-from app.schemas.users import PermissionsSchema, UserRSchema, UserUSchema
+from app.schemas.users import PermissionCodesSchema, UserRSchema, UserUSchema
 from app.services.chats_service import ChatsService
 from app.services.users_service import UsersService
 
@@ -49,15 +49,14 @@ async def update_user(
 @router.patch(
     path="/users/{user_uid}/permissions/",
     name="admin_panel_update_user_permissions",
-    response_model=PermissionsSchema,
+    response_model=PermissionCodesSchema,
 )
 async def update_user_permissions(
     user_uid: int,
-    user: Annotated[User, UserDep(PermissionCode.U_USER)],
+    user: Annotated[User, UserDep(PermissionCode.U_PERMISSION)],
     db_session: DBSessionDep,
-    schema: PermissionsSchema,
-) -> PermissionsSchema:
-    print(schema)
+    schema: PermissionCodesSchema,
+) -> PermissionCodesSchema:
     users_service = UsersService(
         db_session=db_session,
         user_uid=user.uid,
@@ -72,8 +71,8 @@ async def update_user_permissions(
         user=u,
         schema=schema,
     )
-    return PermissionsSchema(
-        permissions={p.code for p in user.permissions},
+    return PermissionCodesSchema(
+        permission_codes={p.code for p in user.permissions},
     )
 
 
