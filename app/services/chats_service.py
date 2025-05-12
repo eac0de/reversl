@@ -116,7 +116,11 @@ class ChatsService:
         file = await self.db_session.get(MessageFile, file_uid)
         if not file:
             return None
-        return FileStreamer(file.path, mime_type=file.mime_type)
+        return FileStreamer(
+            filepath=file.path,
+            mime_type=file.mime_type,
+            encoding="utf-8",
+        )
 
     async def get_chat_or_none(
         self,

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.models.permission import PermissionCode
 from app.schemas.common import WithEmail, WithFullName, WithPhoneNumber
 
 
@@ -29,11 +30,18 @@ class UserRSchema(WithFullName, WithPhoneNumber):
     )
 
 
-class UserRSchemaWithPermissions(UserRSchema):
-    permissions: list[str] = Field(
-        default_factory=list,
+class PermissionsSchema(BaseModel):
+    permissions: set[PermissionCode] = Field(
+        default_factory=set,
         title="User permissions",
     )
+
+
+class UserRSchemaWithPermissions(
+    UserRSchema,
+    PermissionsSchema,
+):
+    pass
 
 
 class UserLSchema(WithFullName):

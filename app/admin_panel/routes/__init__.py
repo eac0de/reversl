@@ -6,7 +6,6 @@ from .api import router as api_router
 from .ssr import router as ssr_router
 
 router = APIRouter(
-    tags=["Admin panel"],
     dependencies=[
         CSRFProtectDep,
     ],

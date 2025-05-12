@@ -9,12 +9,12 @@ from app.dependencies.users import UserDep
 from app.models.permission import PermissionCode
 from app.models.user import User
 from app.schemas.messages import MessageCSchema
-from app.schemas.users import UserRSchema, UserUSchema
+from app.schemas.users import PermissionsSchema, UserRSchema, UserUSchema
 from app.services.chats_service import ChatsService
 from app.services.users_service import UsersService
 
 router = APIRouter(
-    tags=["api"],
+    tags=["admin_panel_api"],
 )
 
 
@@ -39,9 +39,41 @@ async def update_user(
             status_code=404,
             detail="User not found",
         )
-    return await users_service.update_user(
+    u = await users_service.update_user(
         user=u,
         schema=schema,
+    )
+    return users_service.to_user_r_schema(u)
+
+
+@router.patch(
+    path="/users/{user_uid}/permissions/",
+    name="admin_panel_update_user_permissions",
+    response_model=PermissionsSchema,
+)
+async def update_user_permissions(
+    user_uid: int,
+    user: Annotated[User, UserDep(PermissionCode.U_USER)],
+    db_session: DBSessionDep,
+    schema: PermissionsSchema,
+) -> PermissionsSchema:
+    print(schema)
+    users_service = UsersService(
+        db_session=db_session,
+        user_uid=user.uid,
+    )
+    u = await users_service.get_user_or_none(user_uid)
+    if not u:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
+    user = await users_service.update_user_permissions(
+        user=u,
+        schema=schema,
+    )
+    return PermissionsSchema(
+        permissions={p.code for p in user.permissions},
     )
 
 
@@ -66,7 +98,7 @@ async def download_message_file(
             detail="File not found",
         )
     return StreamingResponse(
-        content=file_streamer.get_bytes_stream(),
+        content=file_streamer.get_stream(),
         media_type=file_streamer.media_type,
         headers={"Content-Disposition": file_streamer.content_disposition},
     )

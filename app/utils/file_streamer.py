@@ -1,6 +1,7 @@
 import mimetypes
 import os
 from collections.abc import AsyncGenerator
+from typing import Literal
 from urllib.parse import quote
 
 import aiofiles
@@ -16,6 +17,7 @@ class FileStreamer:
     def __init__(  # noqa: PLR0913
         self,
         filepath: str | Path,
+        read_mode: Literal["r", "rb"] = "rb",
         chunk_size: int = 1024,
         with_cleanup: bool = False,
         filename: str | None = None,
@@ -36,14 +38,16 @@ class FileStreamer:
         self.with_cleanup = with_cleanup
         if not mime_type or not encoding:
             _mime_type, _encoding = mimetypes.guess_type(self.filepath.name)
-            self._media_type = (
+            mime_type = (
                 mime_type if mime_type else _mime_type or "application/octet-stream"
             )
-            self._encoding = encoding if encoding else _encoding or "utf-8"
-
+            encoding = encoding if encoding else _encoding or "utf-8"
+        self._media_type = mime_type
+        self._encoding = encoding
         self._content_disposition = (
             f"attachment; filename*={self._encoding}''{quote(self.filename)}"
         )
+        self.read_mode = read_mode
 
     async def get_stream(self) -> AsyncGenerator[str, None]:
         """
@@ -60,33 +64,8 @@ class FileStreamer:
         try:
             async with aiofiles.open(
                 file=self.filepath,
-                encoding=self._encoding,
-            ) as f:
-                while True:
-                    chunk = await f.read(self.chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
-        finally:
-            if self.with_cleanup:
-                await aiofiles.os.remove(self.filepath)
-
-    async def get_bytes_stream(self) -> AsyncGenerator[bytes, None]:
-        """
-        Asynchronously reads the file in chunks and yields each chunk as bytes.
-
-        Yields:
-            bytes: A chunk of the file content as bytes.
-
-        This function opens the file specified by `self.filepath` in read-binary
-        mode and reads it using the specified `self.chunk_size`. It continuously
-        reads and yields chunks of the file until the end of the file is reached.
-        """
-
-        try:
-            async with aiofiles.open(
-                file=self.filepath,
-                mode="rb",
+                encoding=self._encoding if self.read_mode == "r" else None,
+                mode=self.read_mode,
             ) as f:
                 while True:
                     chunk = await f.read(self.chunk_size)

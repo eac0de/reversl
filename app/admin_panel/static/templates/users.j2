@@ -40,7 +40,7 @@
         <div>
             <p class="mb-1"><strong>Email:</strong><br> <span id="user-email">{{ selected_user.email or '-' }}</span>
             </p>
-            <p class="mb-0"><strong>Tel.:</strong><br> <span id="user-phone">{{ selected_user.phone_number or '-'
+            <p class="mb-0"><strong>Tel.:</strong><br> <span id="user-phone-number">{{ selected_user.phone_number or '-'
                     }}</span></p>
         </div>
     </div>
@@ -57,31 +57,30 @@
                     <div class="modal-body">
                         <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
                         <div class="mb-3">
-                            <label for="first-name" class="form-label">First Name</label>
-                            <input type="text" name="first_name" class="form-control" id="first-name"
+                            <label for="form-first-name" class="form-label">First Name</label>
+                            <input type="text" name="first_name" class="form-control" id="form-first-name"
                                 value="{{ selected_user.first_name or '' }}">
                         </div>
                         <div class="mb-3">
-                            <label for="last-name" class="form-label">Last Name</label>
-                            <input type="text" name="last_name" class="form-control" id="last-name"
+                            <label for="form-last-name" class="form-label">Last Name</label>
+                            <input type="text" name="last_name" class="form-control" id="form-last-name"
                                 value="{{ selected_user.last_name or '' }}">
                         </div>
                         <div class="mb-3">
-                            <label for="patronymic-name" class="form-label">Patronymic Name</label>
-                            <input type="text" name="patronymic_name" class="form-control" id="patronymic-name"
+                            <label for="form-patronymic-name" class="form-label">Patronymic Name</label>
+                            <input type="text" name="patronymic_name" class="form-control" id="form-patronymic-name"
                                 value="{{ selected_user.patronymic_name or '' }}">
                         </div>
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" id="email"
+                            <label for="form-email" class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" id="form-email"
                                 value="{{ selected_user.email }}">
                         </div>
                         <div class="mb-3">
-                            <label for="phone-number" class="form-label">Phone</label>
-                            <input type="tel" name="phone_number" class="form-control" id="phone-number"
+                            <label for="form-phone-number" class="form-label">Phone</label>
+                            <input type="tel" name="phone_number" class="form-control" id="form-phone-number"
                                 value="{{ selected_user.phone_number or '' }}">
                         </div>
-                        <!-- добавь другие поля по необходимости -->
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-primary">Save changes</button>
@@ -134,7 +133,14 @@
                         document.getElementById("user-last-name").textContent = data.last_name || "-";
                         document.getElementById("user-patronymic-name").textContent = data.patronymic_name || "-";
                         document.getElementById("user-email").textContent = data.email || "-";
-                        document.getElementById("user-phone").textContent = data.phone_number || "-";
+                        document.getElementById("user-phone-number").textContent = data.phone_number || "-";
+
+                        document.getElementById('form-first-name').value = data.first_name || '';
+                        document.getElementById('form-last-name').value = data.last_name || '';
+                        document.getElementById('form-patronymic-name').value = data.patronymic_name || '';
+                        document.getElementById('form-email').value = data.email || '';
+                        document.getElementById('form-phone-number').value = data.phone_number || '';
+
                         const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
                         modal.hide();
                     })
@@ -146,25 +152,26 @@
     </script>
 
     {% if "R_PERMISSION" in selected_user.permissions %}
+    {% set perms = {
+    'User': ['C_USER', 'R_USER', 'U_USER', 'D_USER'],
+    'Message': ['C_MESSAGE', 'R_MESSAGE', 'U_MESSAGE', 'D_MESSAGE'],
+    'Chat': ['R_CHAT', 'U_CHAT', 'D_CHAT'],
+    'Permission': ['C_PERMISSION', 'R_PERMISSION', 'U_PERMISSION', 'D_PERMISSION']
+    } %}
     <!-- Permissions panel -->
     <div class="d-flex flex-column p-3 border-end flex-shrink-0" style="width: 20%;">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div></div>
             <h5 class="mb-0">Permissions</h5>
             <button type="button"
-                class="btn btn-sm btn-outline-primary {% if 'U_PERMISSION' not in selected_user.permissions %}disabled{% endif %}">
+                class="btn btn-sm btn-outline-primary {% if 'U_PERMISSION' not in selected_user.permissions %}disabled{% endif %}"
+                data-bs-toggle="modal" data-bs-target="#editPermissionsModal">
                 <i class="bi bi-pencil"></i>
             </button>
 
         </div>
         <table class="table table-bordered  table-sm w-auto">
             <tbody>
-                {% set perms = {
-                'User': ['C_USER', 'R_USER', 'U_USER', 'D_USER'],
-                'Message': ['C_MESSAGE', 'R_MESSAGE', 'U_MESSAGE', 'D_MESSAGE'],
-                'Chat': ['R_CHAT', 'U_CHAT', 'D_CHAT'],
-                'Permission': ['C_PERMISSION', 'R_PERMISSION', 'U_PERMISSION', 'D_PERMISSION']
-                } %}
                 {% for category, keys in perms.items() %}
                 <tr class="table-secondary">
                     <td colspan="2"><strong>{{ category }}</strong></td>
@@ -174,7 +181,8 @@
                     <td>{{ permission_code_to_name_map[key] }}</td>
                     <td class="text-center align-middle">
                         <div class="d-flex h-100 justify-content-center align-items-center">
-                            <i class="bi bi-check2"></i>
+
+                            <i class="bi bi-{{ 'check' if key in selected_user.permissions else 'x' }}"></i>
                         </div>
                     </td>
                 </tr>
@@ -183,6 +191,75 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Permissions Modal -->
+    <div class="modal fade" id="editPermissionsModal" tabindex="-1" aria-labelledby="editPermissionsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="edit-permissions-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editPermissionsModalLabel">Edit User Permissions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% for category, keys in perms.items() %}
+                        <div class="mb-3 border-bottom pb-2">
+                            <h6 class="fw-bold">{{ category }}</h6>
+                            {% for perm in keys %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="permissions" id="perm-{{ perm }}"
+                                    value="{{ perm }}" {% if perm in selected_user.permissions %}checked{% endif %}>
+                                <label class="form-check-label" for="perm-{{ perm }}">
+                                    {{ permission_code_to_name_map[perm] }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save Permissions</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('edit-permissions-form');
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const checkboxes = document.querySelectorAll('input[name="permissions"]:checked');
+                const permissions = Array.from(checkboxes).map(cb => cb.value);
+
+                fetch("{{ url_for('admin_panel_update_user_permissions', user_uid=selected_user.uid) }}", {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-Token": window.csrfToken  // если требуется
+                    },
+                    body: JSON.stringify({ permissions })
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error("HTTP error " + res.status);
+                        return res.json();
+                    })
+                    .then(data => {
+                        alert("Permissions updated!");
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editPermissionsModal'));
+                        modal.hide();
+                    })
+                    .catch(err => {
+                        alert("Failed: " + err.message);
+                    });
+            });
+        });
+    </script>
     {% endif %}
 </div>
 

@@ -8,9 +8,9 @@ from sqlalchemy.orm import joinedload
 from app.models.permission import Permission, PermissionCode
 from app.models.user import User
 from app.schemas.users import (
+    PermissionsSchema,
     UserCSchema,
     UserLSchema,
-    UserRSchema,
     UserRSchemaWithPermissions,
     UserUSchema,
 )
@@ -105,7 +105,7 @@ class UsersService:
             last_name=user.last_name,
             patronymic_name=user.patronymic_name,
             phone_number=user.phone_number,
-            permissions=[p.code.value for p in user.permissions],
+            permissions={p.code for p in user.permissions},
         )
 
     async def get_users_list(self) -> list[UserLSchema]:
@@ -113,15 +113,6 @@ class UsersService:
             UserLSchema.model_validate(user, from_attributes=True)
             async for user in await self.db_session.stream_scalars(select(User))
         ]
-
-    async def get_user(self, user_uid: int) -> UserRSchemaWithPermissions | None:
-        user = await self.get_user_or_none(
-            user_uid,
-            join_permissions=True,
-        )
-        if not user:
-            return None
-        return self.to_user_r_schema(user)
 
     async def get_user_or_none(
         self,
@@ -139,7 +130,7 @@ class UsersService:
         self,
         user: User,
         schema: UserUSchema,
-    ) -> UserRSchema:
+    ) -> User:
         data = schema.model_dump()
         data.setdefault("email", user.email)
         if data["email"] != user.email and await self.db_session.scalar(
@@ -154,4 +145,20 @@ class UsersService:
         )
         await self.db_session.commit()
         await self.db_session.refresh(user)
-        return self.to_user_r_schema(user)
+        return user
+
+    async def update_user_permissions(
+        self,
+        user: User,
+        schema: PermissionsSchema,
+    ) -> User:
+        user.permissions.clear()
+        for c in schema.permissions:
+            user.permissions.append(
+                Permission(
+                    code=c,
+                )
+            )
+        await self.db_session.commit()
+        await self.db_session.refresh(user, attribute_names=["permissions"])
+        return user

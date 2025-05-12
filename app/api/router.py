@@ -75,7 +75,7 @@ async def download_message_file(
         file_uid=file_uid,
     )
     return StreamingResponse(
-        content=file_streamer.get_bytes_stream(),
+        content=file_streamer.get_stream(),
         media_type=file_streamer.media_type,
         headers={"Content-Disposition": file_streamer.content_disposition},
     )

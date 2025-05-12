@@ -17,7 +17,7 @@ from app.services.chats_service import ChatsService
 from app.services.users_service import UsersService
 
 router = APIRouter(
-    tags=["ssr"],
+    tags=["admin_panel_ssr"],
 )
 
 static_path = settings.PROJECT_DIR.joinpath("admin_panel", "static")
@@ -172,13 +172,16 @@ async def get_user_page(
         db_session=db_session,
         user_uid=user.uid,
     )
-    selected_user = await users_service.get_user(user_uid=user_uid)
+    selected_user = await users_service.get_user_or_none(
+        user_uid=user_uid,
+        join_permissions=True,
+    )
     if not selected_user:
         return RedirectResponse(url=request.url_for("admin_panel_users"))
     context = {
         "request": request,
         "users": await users_service.get_users_list(),
-        "selected_user": selected_user,
+        "selected_user": users_service.to_user_r_schema(selected_user),
         "permission_code_to_name_map": PERMISSION_CODE_TO_NAME_MAP,
     }
     response = templates.TemplateResponse(
