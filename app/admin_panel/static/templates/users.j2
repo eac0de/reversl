@@ -7,7 +7,7 @@
         {% set active = 'active' if selected_user and user.uid == selected_user.uid else '' %}
         <a href="{{ url_for('admin_panel_user', user_uid=user.uid) if not active else '#' }}"
             class="list-group-item list-group-item-action {{ active }}">
-            User {{ user.uid }}
+            {{'User ' + user.uid if not selected_user and selected_user.uid != user.uid else 'Me'}}
         </a>
         {% endfor %}
     </div>
@@ -21,7 +21,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div></div>
             <h5 class="mb-0">Info</h5>
-            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+            <button type="button" class="btn btn-sm btn-outline-primary {% if 'U_USER' not in selected_user.permission_codes %}disabled{% endif %}" data-bs-toggle="modal"
                 data-bs-target="#editUserModal">
                 <i class="bi bi-pencil"></i>
             </button>
@@ -156,7 +156,7 @@
     'User': ['C_USER', 'R_USER', 'U_USER', 'D_USER'],
     'Message': ['C_MESSAGE', 'R_MESSAGE', 'U_MESSAGE', 'D_MESSAGE'],
     'Chat': ['R_CHAT', 'U_CHAT', 'D_CHAT'],
-    'Permission': ['C_PERMISSION', 'R_PERMISSION', 'U_PERMISSION', 'D_PERMISSION']
+    'Permission': ['R_PERMISSION', 'U_PERMISSION']
     } %}
     <!-- Permissions panel -->
     <div class="d-flex flex-column p-3 border-end flex-shrink-0" style="width: 20%;">
@@ -182,7 +182,8 @@
                     <td class="text-center align-middle">
                         <div class="d-flex h-100 justify-content-center align-items-center">
 
-                            <i class="bi bi-{{ 'check' if key in selected_user.permission_codes else 'x' }}"></i>
+                            <i id="perm-{{ key }}"
+                                class="bi bi-{{ 'check' if key in selected_user.permission_codes else 'x' }}"></i>
                         </div>
                     </td>
                 </tr>
@@ -208,9 +209,9 @@
                             <h6 class="fw-bold">{{ category }}</h6>
                             {% for perm in keys %}
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="permissions" id="perm-{{ perm }}"
-                                    value="{{ perm }}" {% if perm in selected_user.permission_codes %}checked{% endif
-                                    %}>
+                                <input class="form-check-input" type="checkbox" name="permissions"
+                                    id="form-perm-{{ perm }}" value="{{ perm }}" {% if perm in
+                                    selected_user.permission_codes %}checked{% endif %}>
                                 <label class="form-check-label" for="perm-{{ perm }}">
                                     {{ permission_code_to_name_map[perm] }}
                                 </label>
@@ -230,35 +231,47 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('edit-permissions-form');
+            const perms = {{ permission_code_to_name_map | tojson | safe
+        }};
+        const form = document.getElementById('edit-permissions-form');
 
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-                const checkboxes = document.querySelectorAll('input[name="permissions"]:checked');
-                const permission_codes = Array.from(checkboxes).map(cb => cb.value);
+            const checkboxes = document.querySelectorAll('input[name="permissions"]:checked');
+            const permission_codes = Array.from(checkboxes).map(cb => cb.value);
 
-                fetch("{{ url_for('admin_panel_update_user_permissions', user_uid=selected_user.uid) }}", {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-Token": window.csrfToken  // если требуется
-                    },
-                    body: JSON.stringify({ permission_codes })
+            fetch("{{ url_for('admin_panel_update_user_permissions', user_uid=selected_user.uid) }}", {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": window.csrfToken  // если требуется
+                },
+                body: JSON.stringify({ permission_codes })
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP error " + res.status);
+                    return res.json();
                 })
-                    .then(res => {
-                        if (!res.ok) throw new Error("HTTP error " + res.status);
-                        return res.json();
-                    })
-                    .then(data => {
-                        alert("Permissions updated!");
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('editPermissionsModal'));
-                        modal.hide();
-                    })
-                    .catch(err => {
-                        alert("Failed: " + err.message);
-                    });
-            });
+                .then(data => {
+                    for (let key of Object.keys(perms)) {
+                        permFromForm = document.getElementById('form-perm-' + key);
+                        perm = document.getElementById('perm-' + key);
+                        if (data.permission_codes.includes(key)) {
+                            permFromForm.checked = true;
+                            perm.classList = "bi bi-check";
+                        } else {
+                            permFromForm.checked = false;
+                            perm.classList = "bi bi-x";
+                        }
+                    }
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editPermissionsModal'));
+                    modal.hide();
+                })
+                .catch(err => {
+                    alert("Failed: " + err.message);
+                });
+        });
         });
     </script>
     {% endif %}

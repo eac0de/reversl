@@ -25,10 +25,8 @@ class PermissionCode(str, Enum):
     U_CHAT = "U_CHAT"
     D_CHAT = "D_CHAT"
 
-    C_PERMISSION = "C_PERMISSION"
     R_PERMISSION = "R_PERMISSION"
     U_PERMISSION = "U_PERMISSION"
-    D_PERMISSION = "D_PERMISSION"
 
 
 PERMISSION_CODE_TO_NAME_MAP: dict[PermissionCode, str] = {
@@ -43,10 +41,8 @@ PERMISSION_CODE_TO_NAME_MAP: dict[PermissionCode, str] = {
     PermissionCode.R_CHAT: "Read chat",
     PermissionCode.U_CHAT: "Update chat",
     PermissionCode.D_CHAT: "Delete chat",
-    PermissionCode.C_PERMISSION: "Create permission",
     PermissionCode.R_PERMISSION: "Read permission",
     PermissionCode.U_PERMISSION: "Update permission",
-    PermissionCode.D_PERMISSION: "Delete permission",
 }
 
 

@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from app.database import DBSessionDep
 from app.dependencies.auth import ChatDep
 from app.schemas.messages import MessageCSchema, MessageRLSchema
-from app.services.api_service import APIService
+from app.services.api import APIService
 
 router = APIRouter()
 

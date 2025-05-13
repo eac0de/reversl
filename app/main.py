@@ -15,7 +15,7 @@ from app.core.exceptions import ResponseException
 from app.database import get_session
 from app.middlewares.csrf_protect import CSRFProtectMiddleware
 from app.middlewares.process_time import ProcessTimeMiddleware
-from app.services.users_service import UsersService
+from app.services.users import UsersService
 
 
 @asynccontextmanager

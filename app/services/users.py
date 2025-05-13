@@ -17,6 +17,42 @@ from app.schemas.users import (
     UserUSchema,
 )
 
+AUTO_PERMISSIONS_MAP: dict[PermissionCode, set[PermissionCode]] = {
+    PermissionCode.R_PERMISSION: {
+        PermissionCode.R_USER,
+    },
+    PermissionCode.U_PERMISSION: {c for c in PermissionCode.__members__.values()},
+    PermissionCode.C_USER: set(),
+    PermissionCode.R_USER: set(),
+    PermissionCode.U_USER: {
+        PermissionCode.R_USER,
+    },
+    PermissionCode.D_USER: {
+        PermissionCode.R_USER,
+    },
+    PermissionCode.C_MESSAGE: {
+        PermissionCode.R_CHAT,
+    },
+    PermissionCode.R_MESSAGE: {
+        PermissionCode.R_CHAT,
+    },
+    PermissionCode.U_MESSAGE: {
+        PermissionCode.R_CHAT,
+        PermissionCode.R_MESSAGE,
+    },
+    PermissionCode.D_MESSAGE: {
+        PermissionCode.R_CHAT,
+        PermissionCode.R_MESSAGE,
+    },
+    PermissionCode.R_CHAT: set(),
+    PermissionCode.U_CHAT: {
+        PermissionCode.R_CHAT,
+    },
+    PermissionCode.D_CHAT: {
+        PermissionCode.R_CHAT,
+    },
+}
+
 
 class UsersService:
     def __init__(
@@ -154,10 +190,12 @@ class UsersService:
         user: User,
         schema: PermissionCodesSchema,
     ) -> User:
+        if user.uid == self.user_uid:
+            schema.permission_codes.add(PermissionCode.U_PERMISSION)
         validated_permission_codes = copy(schema.permission_codes)
         for c in schema.permission_codes:
-            if c.startswith(("U_", "D_")):
-                validated_permission_codes.add(PermissionCode("R_" + c[2:]))
+            if c in AUTO_PERMISSIONS_MAP:
+                validated_permission_codes.update(AUTO_PERMISSIONS_MAP[c])
         schema.permission_codes = validated_permission_codes
         user.permissions.clear()
         for c in schema.permission_codes:

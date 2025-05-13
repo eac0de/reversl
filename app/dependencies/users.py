@@ -10,7 +10,7 @@ from app.database import DBSessionDep
 from app.dependencies.auth import Auth, AuthDep
 from app.models.permission import PermissionCode
 from app.models.user import User
-from app.services.users_service import UsersService
+from app.services.users import UsersService
 
 
 def UserDep(

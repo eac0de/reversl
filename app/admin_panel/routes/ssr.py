@@ -13,8 +13,8 @@ from app.dependencies.users import UserDep
 from app.models.permission import PERMISSION_CODE_TO_NAME_MAP, PermissionCode
 from app.models.user import User
 from app.schemas.auth import LoginSchema
-from app.services.chats_service import ChatsService
-from app.services.users_service import UsersService
+from app.services.chats import ChatsService
+from app.services.users import UsersService
 
 router = APIRouter(
     tags=["admin_panel_ssr"],

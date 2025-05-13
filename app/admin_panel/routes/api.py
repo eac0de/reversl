@@ -10,8 +10,8 @@ from app.models.permission import PermissionCode
 from app.models.user import User
 from app.schemas.messages import MessageCSchema
 from app.schemas.users import PermissionCodesSchema, UserRSchema, UserUSchema
-from app.services.chats_service import ChatsService
-from app.services.users_service import UsersService
+from app.services.chats import ChatsService
+from app.services.users import UsersService
 
 router = APIRouter(
     tags=["admin_panel_api"],
