@@ -28,6 +28,29 @@ body {
   background: transparent;
 }
 
-.font-mso {
-  font-family: "Material Symbols Outlined";
+.message {
+  max-width: 80%;
+}
+
+@media (min-width: 872px) {
+  .message {
+    max-width: 50%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .message {
+    max-width: 40%;
+  }
+}
+
+.user-message-justify {
+  justify-content: flex-end;
+}
+
+@media (min-width: 1200px) {
+  .user-message-justify {
+    justify-content: flex-start;
+    margin-left: 30px;
+  }
 }

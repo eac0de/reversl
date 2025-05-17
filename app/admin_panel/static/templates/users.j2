@@ -3,11 +3,16 @@
 <!-- Sidebar -->
 <div class="d-flex flex-column flex-shrink-0 bg-light border-end" style="width: 15%;">
     <div class="list-group list-group-flush overflow-auto">
+        {% set active = 'active' if selected_user and request.user.uid == selected_user.uid else '' %}
+        <a href="{{ url_for('ap_users').include_query_params(user_uid=request.user.uid) if not active else '#' }}"
+            class="list-group-item list-group-item-action {{ active }}">
+            Me
+        </a>
         {% for user in users %}
         {% set active = 'active' if selected_user and user.uid == selected_user.uid else '' %}
-        <a href="{{ url_for('admin_panel_user', user_uid=user.uid) if not active else '#' }}"
+        <a href="{{ url_for('ap_users').include_query_params(user_uid=user.uid) if not active else '#' }}"
             class="list-group-item list-group-item-action {{ active }}">
-            {{'User ' + user.uid if not selected_user and selected_user.uid != user.uid else 'Me'}}
+            User {{user.uid}}
         </a>
         {% endfor %}
     </div>
@@ -15,14 +20,15 @@
 
 <!-- User content -->
 {% if selected_user %}
-<div class="flex-grow-1 d-flex">
+<div class="flex-grow-1 d-flex flex-wrap">
     <!-- Info panel -->
-    <div class="p-3 border-end flex-shrink-0" style="width: 20%;">
+    <div class="p-3 border-end flex-shrink-0 col-12 col-sm-6 col-md-4 col-lg-3" style="min-width: 200px;">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div></div>
             <h5 class="mb-0">Info</h5>
-            <button type="button" class="btn btn-sm btn-outline-primary {% if 'U_USER' not in selected_user.permission_codes %}disabled{% endif %}" data-bs-toggle="modal"
-                data-bs-target="#editUserModal">
+            <button type="button"
+                class="btn btn-sm btn-outline-primary {% if 'U_USER' not in request.user.permission_codes %}disabled{% endif %}"
+                data-bs-toggle="modal" data-bs-target="#editUserModal">
                 <i class="bi bi-pencil"></i>
             </button>
         </div>
@@ -45,140 +51,32 @@
         </div>
     </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="edit-user-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editUserModalLabel">Edit User Info</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
-                        <div class="mb-3">
-                            <label for="form-first-name" class="form-label">First Name</label>
-                            <input type="text" name="first_name" class="form-control" id="form-first-name"
-                                value="{{ selected_user.first_name or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="form-last-name" class="form-label">Last Name</label>
-                            <input type="text" name="last_name" class="form-control" id="form-last-name"
-                                value="{{ selected_user.last_name or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="form-patronymic-name" class="form-label">Patronymic Name</label>
-                            <input type="text" name="patronymic_name" class="form-control" id="form-patronymic-name"
-                                value="{{ selected_user.patronymic_name or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="form-email" class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" id="form-email"
-                                value="{{ selected_user.email }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="form-phone-number" class="form-label">Phone</label>
-                            <input type="tel" name="phone_number" class="form-control" id="form-phone-number"
-                                value="{{ selected_user.phone_number or '' }}">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Save changes</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('edit-user-form');
-
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                let formData = new FormData(form);
-                formData.append("csrf_token", window.csrfToken);
-
-                formData.set("first_name", formData.get("first_name").trim());
-                if (formData.get("first_name") == "") {
-                    formData.delete("first_name");
-                }
-
-                formData.set("last_name", formData.get("last_name").trim());
-                if (formData.get("last_name") == "") {
-                    formData.delete("last_name");
-                }
-
-                formData.set("patronymic_name", formData.get("patronymic_name").trim());
-                if (formData.get("patronymic_name") == "") {
-                    formData.delete("patronymic_name");
-                }
-
-                formData.set("phone_number", formData.get("phone_number").trim());
-                if (formData.get("phone_number") == "") {
-                    formData.delete("phone_number");
-                }
-
-                fetch("{{ url_for('admin_panel_update_user', user_uid=selected_user.uid) }}", {
-                    method: "PATCH",
-                    body: formData,
-                })
-                    .then(res => {
-                        if (!res.ok) throw new Error("HTTP error " + res.status);
-                        return res.json();
-                    })
-                    .then(data => {
-                        document.getElementById("user-first-name").textContent = data.first_name || "-";
-                        document.getElementById("user-last-name").textContent = data.last_name || "-";
-                        document.getElementById("user-patronymic-name").textContent = data.patronymic_name || "-";
-                        document.getElementById("user-email").textContent = data.email || "-";
-                        document.getElementById("user-phone-number").textContent = data.phone_number || "-";
-
-                        document.getElementById('form-first-name').value = data.first_name || '';
-                        document.getElementById('form-last-name').value = data.last_name || '';
-                        document.getElementById('form-patronymic-name').value = data.patronymic_name || '';
-                        document.getElementById('form-email').value = data.email || '';
-                        document.getElementById('form-phone-number').value = data.phone_number || '';
-
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
-                        modal.hide();
-                    })
-                    .catch(err => {
-                        alert("Failed: " + err.message);
-                    });
-            });
-        });
-    </script>
+    {% include "modals/editUserInfo.j2" %}
+    <script>window.urlForUpdateUserInfo = "{{ url_for('ap_update_user', user_uid=selected_user.uid) }}"</script>
+    <script src="{{ get_static_url('js', 'editUserInfo.js') }}"></script>
 
     {% if "R_PERMISSION" in selected_user.permission_codes %}
-    {% set perms = {
-    'User': ['C_USER', 'R_USER', 'U_USER', 'D_USER'],
-    'Message': ['C_MESSAGE', 'R_MESSAGE', 'U_MESSAGE', 'D_MESSAGE'],
-    'Chat': ['R_CHAT', 'U_CHAT', 'D_CHAT'],
-    'Permission': ['R_PERMISSION', 'U_PERMISSION']
-    } %}
     <!-- Permissions panel -->
-    <div class="d-flex flex-column p-3 border-end flex-shrink-0" style="width: 20%;">
+    <div class="p-3 border-end flex-shrink-0 col-12 col-sm-6 col-md-4 col-lg-3" style="min-width: 200px;">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div></div>
             <h5 class="mb-0">Permissions</h5>
             <button type="button"
-                class="btn btn-sm btn-outline-primary {% if 'U_PERMISSION' not in selected_user.permission_codes %}disabled{% endif %}"
+                class="btn btn-sm btn-outline-primary {% if request.user.uid == selected_user.uid or 'U_PERMISSION' not in selected_user.permission_codes %}disabled{% endif %}"
                 data-bs-toggle="modal" data-bs-target="#editPermissionsModal">
                 <i class="bi bi-pencil"></i>
             </button>
 
         </div>
-        <table class="table table-bordered  table-sm w-auto">
+        <table class="table table-bordered  table-sm w-auto mx-auto">
             <tbody>
-                {% for category, keys in perms.items() %}
+                {% for category, keys in permission_groups.items() %}
                 <tr class="table-secondary">
                     <td colspan="2"><strong>{{ category }}</strong></td>
                 </tr>
                 {% for key in keys %}
                 <tr>
-                    <td>{{ permission_code_to_name_map[key] }}</td>
+                    <td>{{ permission_code_name_map[key] }}</td>
                     <td class="text-center align-middle">
                         <div class="d-flex h-100 justify-content-center align-items-center">
 
@@ -192,88 +90,12 @@
             </tbody>
         </table>
     </div>
-
-    <!-- Permissions Modal -->
-    <div class="modal fade" id="editPermissionsModal" tabindex="-1" aria-labelledby="editPermissionsModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="edit-permissions-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editPermissionsModalLabel">Edit User Permissions</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        {% for category, keys in perms.items() %}
-                        <div class="mb-3 border-bottom pb-2">
-                            <h6 class="fw-bold">{{ category }}</h6>
-                            {% for perm in keys %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="permissions"
-                                    id="form-perm-{{ perm }}" value="{{ perm }}" {% if perm in
-                                    selected_user.permission_codes %}checked{% endif %}>
-                                <label class="form-check-label" for="perm-{{ perm }}">
-                                    {{ permission_code_to_name_map[perm] }}
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endfor %}
-
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Save Permissions</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    {% include "modals/editUserPermissions.j2" %}
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const perms = {{ permission_code_to_name_map | tojson | safe
-        }};
-        const form = document.getElementById('edit-permissions-form');
-
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const checkboxes = document.querySelectorAll('input[name="permissions"]:checked');
-            const permission_codes = Array.from(checkboxes).map(cb => cb.value);
-
-            fetch("{{ url_for('admin_panel_update_user_permissions', user_uid=selected_user.uid) }}", {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-Token": window.csrfToken  // если требуется
-                },
-                body: JSON.stringify({ permission_codes })
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error("HTTP error " + res.status);
-                    return res.json();
-                })
-                .then(data => {
-                    for (let key of Object.keys(perms)) {
-                        permFromForm = document.getElementById('form-perm-' + key);
-                        perm = document.getElementById('perm-' + key);
-                        if (data.permission_codes.includes(key)) {
-                            permFromForm.checked = true;
-                            perm.classList = "bi bi-check";
-                        } else {
-                            permFromForm.checked = false;
-                            perm.classList = "bi bi-x";
-                        }
-                    }
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editPermissionsModal'));
-                    modal.hide();
-                })
-                .catch(err => {
-                    alert("Failed: " + err.message);
-                });
-        });
-        });
+        window.permissionCodeNameMap = {{ permission_code_name_map | tojson | safe }}
+        window.urlForUpdateUserPermissions = "{{ url_for('ap_update_user_permissions', user_uid=selected_user.uid) }}";
     </script>
+    <script src="{{ get_static_url('js', 'editUserPermissions.js') }}"></script>
     {% endif %}
 </div>
 

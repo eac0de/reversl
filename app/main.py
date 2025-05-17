@@ -12,7 +12,7 @@ from app.admin_panel.routes import router as admin_panel_router
 from app.api.router import router as api_router
 from app.config import settings
 from app.core.exceptions import ResponseException
-from app.database import get_session
+from app.database import get_session, with_commit
 from app.middlewares.csrf_protect import CSRFProtectMiddleware
 from app.middlewares.process_time import ProcessTimeMiddleware
 from app.services.users import UsersService
@@ -21,7 +21,7 @@ from app.services.users import UsersService
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     await settings.FILES_PATH.mkdir(parents=True, exist_ok=True)
-    async with get_session() as db_session:
+    async with get_session() as db_session, with_commit(db_session):
         await UsersService.create_init_user(
             db_session=db_session,
             email=settings.REVERSL_FIRST_USER_EMAIL,

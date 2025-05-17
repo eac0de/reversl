@@ -1,28 +1,43 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Form, HTTPException, Query, Request, Response
 from fastapi.datastructures import URL
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 
+from app.admin_panel.filters.messages import MessagesFilter
+from app.admin_panel.filters.users import UsersFilter
 from app.config import settings
 from app.database import DBSessionDep
 from app.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
 from app.dependencies.users import UserDep
-from app.models.permission import PERMISSION_CODE_TO_NAME_MAP, PermissionCode
+from app.models.permission import (
+    PERMISSION_CODE_TO_NAME_MAP,
+    PERMISSION_GROUPS_MAP,
+    PermissionCode,
+)
 from app.models.user import User
 from app.schemas.auth import LoginSchema
+from app.schemas.chats import ChatLSchema
 from app.services.chats import ChatsService
 from app.services.users import UsersService
 
 router = APIRouter(
-    tags=["admin_panel_ssr"],
+    tags=["ap_ssr"],
 )
 
 static_path = settings.PROJECT_DIR.joinpath("admin_panel", "static")
 
 templates = Jinja2Templates(directory=static_path / "templates")
+
+
+class Context(dict):  # type: ignore
+    def __init__(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        if not request:
+            raise ValueError("Field 'request' is required")
+        kwargs["request"] = request
+        super().__init__(*args, **kwargs)
 
 
 @pass_context
@@ -31,7 +46,7 @@ def get_static_url(
     *path_parts: str,
 ) -> URL:
     request: Request = context["request"]
-    return request.url_for("admin_panel_static", path="/".join(path_parts))
+    return request.url_for("ap_static", path="/".join(path_parts))
 
 
 templates.env.globals["get_static_url"] = get_static_url
@@ -39,7 +54,7 @@ templates.env.globals["get_static_url"] = get_static_url
 
 @router.get(
     path="/static/{path:path}",
-    name="admin_panel_static",
+    name="ap_static",
 )
 async def get_static(
     path: str,
@@ -55,13 +70,13 @@ async def get_static(
 
 @router.get(
     path="/auth/",
-    name="admin_panel_auth",
+    name="ap_auth",
 )
 async def get_auth_page(
     request: Request,
 ) -> Response:
     if request.cookies.get(ADMIN_PANEL_TOKEN_KEY):
-        return RedirectResponse(url=request.url_for("admin_panel_home"))
+        return RedirectResponse(url=request.url_for("ap_home"))
     context = {
         "request": request,
     }
@@ -74,7 +89,7 @@ async def get_auth_page(
 
 @router.post(
     path="/auth/login/",
-    name="admin_panel_login",
+    name="ap_login",
 )
 async def login(
     request: Request,
@@ -88,11 +103,11 @@ async def login(
     )
     if not user:
         return RedirectResponse(
-            url=request.url_for("admin_panel_auth").include_query_params(error=True),
+            url=request.url_for("ap_auth").include_query_params(error=True),
             status_code=303,
         )
     response = RedirectResponse(
-        url=request.url_for("admin_panel_home"),
+        url=request.url_for("ap_home"),
         status_code=303,
     )
     Auth.set_session_cookie(response, user.uid)
@@ -101,13 +116,13 @@ async def login(
 
 @router.post(
     path="/auth/logout/",
-    name="admin_panel_logout",
+    name="ap_logout",
 )
 async def logout(
     request: Request,
 ) -> Response:
     response = RedirectResponse(
-        url=request.url_for("admin_panel_auth"),
+        url=request.url_for("ap_auth"),
         status_code=303,
     )
     Auth.unset_session_cookie(response)
@@ -116,7 +131,7 @@ async def logout(
 
 @router.get(
     path="/",
-    name="admin_panel_home",
+    name="ap_home",
     dependencies=[
         UserDep(),
     ],
@@ -124,9 +139,7 @@ async def logout(
 async def get_home_page(
     request: Request,
 ) -> Response:
-    context = {
-        "request": request,
-    }
+    context = Context(request=request)
     response = templates.TemplateResponse(
         name="home.j2",
         context=context,
@@ -136,54 +149,28 @@ async def get_home_page(
 
 @router.get(
     path="/users/",
-    name="admin_panel_users",
+    name="ap_users",
 )
 async def get_users_page(
     db_session: DBSessionDep,
-    user: Annotated[User, UserDep(PermissionCode.R_USER)],
     request: Request,
+    current_user: Annotated[User, UserDep(PermissionCode.R_USER)],
+    users_filter: Annotated[UsersFilter, Query(default_factory=UsersFilter)],
 ) -> Response:
     users_service = UsersService(
         db_session=db_session,
-        user_uid=user.uid,
     )
-    context = {
-        "request": request,
-        "users": await users_service.get_users_list(),
-    }
-    response = templates.TemplateResponse(
-        name="users.j2",
-        context=context,
-    )
-    return response
-
-
-@router.get(
-    path="/users/{user_uid}/",
-    name="admin_panel_user",
-)
-async def get_user_page(
-    user_uid: int,
-    user: Annotated[User, UserDep(PermissionCode.R_USER)],
-    db_session: DBSessionDep,
-    request: Request,
-) -> Response:
-    users_service = UsersService(
-        db_session=db_session,
-        user_uid=user.uid,
-    )
-    selected_user = await users_service.get_user_or_none(
-        user_uid=user_uid,
-        join_permissions=True,
-    )
-    if not selected_user:
-        return RedirectResponse(url=request.url_for("admin_panel_users"))
-    context = {
-        "request": request,
-        "users": await users_service.get_users_list(),
-        "selected_user": users_service.to_user_r_schema(selected_user),
-        "permission_code_to_name_map": PERMISSION_CODE_TO_NAME_MAP,
-    }
+    context = Context(request=request)
+    if users_filter.user_uid:
+        user = await users_service.get_user_or_none(users_filter.user_uid)
+        if not user:
+            return RedirectResponse(url=request.url_for("ap_users"))
+        context["selected_user"] = users_service.to_user_r_schema(user)
+        context["permission_code_name_map"] = PERMISSION_CODE_TO_NAME_MAP
+        context["permission_groups"] = PERMISSION_GROUPS_MAP
+    users_filter.uid__neq = current_user.uid
+    users_list = await users_service.get_users_list(users_filter=users_filter)
+    context["users"] = [users_service.to_user_r_schema(user) for user in users_list]
     response = templates.TemplateResponse(
         name="users.j2",
         context=context,
@@ -193,55 +180,34 @@ async def get_user_page(
 
 @router.get(
     path="/chats/",
-    name="admin_panel_chats",
+    name="ap_chats",
+    dependencies=[UserDep(PermissionCode.R_CHAT)],
 )
 async def get_chats_page(
     db_session: DBSessionDep,
-    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     request: Request,
+    chat_uid: Annotated[int | None, Query()] = None,
 ) -> Response:
     chats_service = ChatsService(
         db_session=db_session,
-        user_uid=user.uid,
     )
-    context = {
-        "request": request,
-        "chats": await chats_service.get_chats_list(),
-    }
-    response = templates.TemplateResponse(
-        name="chats.j2",
-        context=context,
-    )
-    return response
+    context: dict[str, Any] = {"request": request}
 
+    if chat_uid:
+        chat = await chats_service.get_chat_or_none(chat_uid)
+        if not chat:
+            return RedirectResponse(url=request.url_for("ap_chats"))
+        context["selected_chat"] = chats_service.to_chat_r_schema(chat)
+        messages_batch_size = 10
+        msgs = await chats_service.get_messages_list(
+            chat_uid=chat.uid,
+            messages_filter=MessagesFilter(limit=messages_batch_size),
+        )
+        context["messages"] = [chats_service.to_message_rl_schema(msg) for msg in msgs]
+        context["messages_batch_size"] = messages_batch_size
 
-@router.get(
-    path="/chats/{chat_uid}/",
-    name="admin_panel_chat",
-    dependencies=[
-        UserDep(PermissionCode.R_CHAT),
-    ],
-)
-async def get_chat_page(
-    db_session: DBSessionDep,
-    user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
-    request: Request,
-    chat_uid: int,
-) -> Response:
-    chats_service = ChatsService(
-        db_session=db_session,
-        user_uid=user.uid,
-    )
-    chat = await chats_service.get_chat(chat_uid)
-    if not chat:
-        return RedirectResponse(url=request.url_for("admin_panel_chats"))
-    m = await chats_service.get_chat_messages(chat.uid)
-    context = {
-        "request": request,
-        "chats": await chats_service.get_chats_list(),
-        "selected_chat": chat,
-        "messages": m,
-    }
+    chats_list = await chats_service.get_chats_list()
+    context["chats"] = [ChatLSchema.model_validate(chat) for chat in chats_list]
     response = templates.TemplateResponse(
         name="chats.j2",
         context=context,

@@ -1,12 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Form, Query
 from fastapi.responses import StreamingResponse
 
-from app.database import DBSessionDep
+from app.admin_panel.filters.messages import MessagesFilter
+from app.database import DBSessionDep, with_commit
 from app.dependencies.auth import ChatDep
+from app.schemas.chats import ChatRSchema, ChatUSchema
 from app.schemas.messages import MessageCSchema, MessageRLSchema
-from app.services.api import APIService
+from app.services.chats import ChatsService
 
 router = APIRouter()
 
@@ -17,30 +19,38 @@ router = APIRouter()
 )
 async def create_message(
     db_session: DBSessionDep,
-    chat_auth: ChatDep,
+    chat: ChatDep,
     schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
 ) -> MessageRLSchema:
-    api_service = APIService(
+    service = ChatsService(
         db_session=db_session,
-        chat_uid=chat_auth.uid,
     )
-    return await api_service.create_message(schema)
+    async with with_commit(db_session):
+        message = await service.create_message(
+            chat_uid=chat.uid,
+            schema=schema,
+        )
+    return service.to_message_rl_schema(message)
 
 
 @router.patch(
-    path="/messages/",
+    path="/chat/",
     response_model=MessageRLSchema,
 )
-async def change_chat_info(
+async def update_chat(
     db_session: DBSessionDep,
-    chat_auth: ChatDep,
-    schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
-) -> MessageRLSchema:
-    api_service = APIService(
+    chat: ChatDep,
+    schema: Annotated[ChatUSchema, Form(media_type="multipart/form-data")],
+) -> ChatRSchema:
+    service = ChatsService(
         db_session=db_session,
-        chat_uid=chat_auth.uid,
     )
-    return await api_service.create_message(schema)
+    async with with_commit(db_session):
+        chat = await service.update_chat(
+            chat=chat,
+            schema=schema,
+        )
+    return service.to_chat_r_schema(chat)
 
 
 @router.get(
@@ -49,17 +59,21 @@ async def change_chat_info(
 )
 async def get_messages_list(
     db_session: DBSessionDep,
-    chat_auth: ChatDep,
+    chat: ChatDep,
+    messages_filter: Annotated[MessagesFilter, Query(default_factory=MessagesFilter)],
 ) -> list[MessageRLSchema]:
-    api_service = APIService(
+    service = ChatsService(
         db_session=db_session,
-        chat_uid=chat_auth.uid,
     )
-    return await api_service.get_messages_list()
+    messages_list = await service.get_messages_list(
+        chat_uid=chat.uid,
+        messages_filter=messages_filter,
+    )
+    return [service.to_message_rl_schema(message) for message in messages_list]
 
 
 @router.get(
-    path="/messages/files/{file_uid}/",
+    path="/files/{file_uid}/",
     response_class=StreamingResponse,
 )
 async def download_message_file(
@@ -67,11 +81,11 @@ async def download_message_file(
     chat: ChatDep,
     file_uid: int,
 ) -> StreamingResponse:
-    api_service = APIService(
+    service = ChatsService(
         db_session=db_session,
-        chat_uid=chat.uid,
     )
-    file_streamer = await api_service.download_message_file(
+    file_streamer = await service.download_message_file(
+        chat_uid=chat.uid,
         file_uid=file_uid,
     )
     return StreamingResponse(

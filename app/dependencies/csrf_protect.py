@@ -4,7 +4,7 @@ from app.config import settings
 
 
 async def verify_csrf_token(request: Request) -> None:
-    if request.method in ["POST", "PUT", "DELETE"]:
+    if request.method != "GET":
         submitted_token = request.headers.get("X-CSRF-Token") or (
             await request.form()
         ).get("csrf_token")
@@ -13,7 +13,6 @@ async def verify_csrf_token(request: Request) -> None:
                 status_code=403,
                 detail="Invalid CSRF token",
             )
-    
 
 
 CSRFProtectDep = Depends(verify_csrf_token)

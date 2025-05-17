@@ -1,18 +1,16 @@
-from copy import copy
-
 import bcrypt
 from fastapi import HTTPException, status
 from pydantic import EmailStr
-from sqlalchemy import exists, select, update
+from sqlalchemy import ScalarResult, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.admin_panel.filters.users import UsersFilter
 from app.models.permission import Permission, PermissionCode
 from app.models.user import User
 from app.schemas.users import (
     PermissionCodesSchema,
     UserCSchema,
-    UserLSchema,
     UserRSchemaWithPermissions,
     UserUSchema,
 )
@@ -58,10 +56,8 @@ class UsersService:
     def __init__(
         self,
         db_session: AsyncSession,
-        user_uid: int,
     ) -> None:
         self.db_session = db_session
-        self.user_uid = user_uid
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -116,7 +112,6 @@ class UsersService:
                     code=c,
                 )
             )
-        await db_session.commit()
 
     @staticmethod
     async def auth_user(
@@ -146,11 +141,11 @@ class UsersService:
             permission_codes={p.code for p in user.permissions},
         )
 
-    async def get_users_list(self) -> list[UserLSchema]:
-        return [
-            UserLSchema.model_validate(user, from_attributes=True)
-            async for user in await self.db_session.stream_scalars(select(User))
-        ]
+    async def get_users_list(
+        self,
+        users_filter: UsersFilter,
+    ) -> ScalarResult[User]:
+        return await self.db_session.scalars(users_filter(select(User)))
 
     async def get_user_or_none(
         self,
@@ -169,9 +164,9 @@ class UsersService:
         user: User,
         schema: UserUSchema,
     ) -> User:
-        data = schema.model_dump()
-        data.setdefault("email", user.email)
-        if data["email"] != user.email and await self.db_session.scalar(
+        data = schema.model_dump(exclude_unset=True)
+        email = data.setdefault("email", user.email)
+        if email != user.email and await self.db_session.scalar(
             select(exists().where(User.email == data["email"]))
         ):
             raise HTTPException(
@@ -179,31 +174,30 @@ class UsersService:
                 detail="User with this email already exists",
             )
         await self.db_session.execute(
-            update(User).where(User.uid == user.uid).values(**schema.model_dump())
+            update(User).where(User.uid == user.uid).values(**data)
         )
-        await self.db_session.commit()
-        await self.db_session.refresh(user)
+        await self.db_session.flush()
+        await self.db_session.refresh(user, attribute_names=["permissions"])
         return user
 
     async def update_user_permissions(
         self,
+        current_user_uid: int,
         user: User,
         schema: PermissionCodesSchema,
-    ) -> User:
-        if user.uid == self.user_uid:
+    ) -> ScalarResult[Permission]:
+        if user.uid == current_user_uid:
             schema.permission_codes.add(PermissionCode.U_PERMISSION)
-        validated_permission_codes = copy(schema.permission_codes)
-        for c in schema.permission_codes:
-            if c in AUTO_PERMISSIONS_MAP:
-                validated_permission_codes.update(AUTO_PERMISSIONS_MAP[c])
-        schema.permission_codes = validated_permission_codes
-        user.permissions.clear()
-        for c in schema.permission_codes:
-            user.permissions.append(
-                Permission(
-                    code=c,
-                )
+        validated_permission_codes = set(schema.permission_codes)
+        for code in schema.permission_codes:
+            validated_permission_codes.update(AUTO_PERMISSIONS_MAP.get(code, set()))
+        user.permissions = [
+            Permission(
+                code=code,
             )
-        await self.db_session.commit()
-        await self.db_session.refresh(user, attribute_names=["permissions"])
-        return user
+            for code in validated_permission_codes
+        ]
+        await self.db_session.flush()
+        return await self.db_session.scalars(
+            select(Permission).where(Permission.user_uid == user.uid)
+        )

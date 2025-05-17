@@ -7,7 +7,7 @@ auh:
 	alembic upgrade head
 
 run:
-	uvicorn app.main:app --port 8888 --reload
+	uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload
 
 up:
 	docker compose up --build

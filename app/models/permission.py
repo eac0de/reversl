@@ -29,6 +29,30 @@ class PermissionCode(str, Enum):
     U_PERMISSION = "U_PERMISSION"
 
 
+PERMISSION_GROUPS_MAP: dict[str, set[PermissionCode]] = {
+    "User": {
+        PermissionCode.R_USER,
+        PermissionCode.U_USER,
+        PermissionCode.D_USER,
+    },
+    "Message": {
+        PermissionCode.C_MESSAGE,
+        PermissionCode.R_MESSAGE,
+        PermissionCode.U_MESSAGE,
+        PermissionCode.D_MESSAGE,
+    },
+    "Chat": {
+        PermissionCode.R_CHAT,
+        PermissionCode.U_CHAT,
+        PermissionCode.D_CHAT,
+    },
+    "Permission": {
+        PermissionCode.R_PERMISSION,
+        PermissionCode.U_PERMISSION,
+    },
+}
+
+
 PERMISSION_CODE_TO_NAME_MAP: dict[PermissionCode, str] = {
     PermissionCode.C_USER: "Create user",
     PermissionCode.R_USER: "Read user",

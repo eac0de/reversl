@@ -82,14 +82,12 @@ class Auth:
         token: Annotated[str | None, Cookie(alias=ADMIN_PANEL_TOKEN_KEY)] = None,
     ) -> AuthPayloadSchema:
         if token is None:
-            raise ResponseException(
-                RedirectResponse(url=request.url_for("admin_panel_auth"))
-            )
+            raise ResponseException(RedirectResponse(url=request.url_for("ap_auth")))
         try:
             payload = cls._get_payload(token)
             return AuthPayloadSchema.model_validate(payload)
         except Exception as e:
-            response = RedirectResponse(url=request.url_for("admin_panel_auth"))
+            response = RedirectResponse(url=request.url_for("ap_auth"))
             cls.unset_session_cookie(response)
             raise ResponseException(response) from e
 

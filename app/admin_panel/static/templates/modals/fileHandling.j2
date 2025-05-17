@@ -1,0 +1,22 @@
+<div class="modal fade" id="fileModal" tabindex="-1" aria-labelledby="fileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title me-auto" id="fileModalLabel">Selected files</h5>
+
+                <button type="button" class="btn btn-sm btn-outline-primary me-2" id="add-more-files-btn">
+                    Add more files
+                </button>
+
+                <button type="button" class="btn btn-sm btn-outline-danger me-2" id="clear-all-files-btn">
+                    Delete all
+                </button>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="file-list" class="d-flex flex-column gap-2"></div>
+            </div>
+        </div>
+    </div>
+</div>

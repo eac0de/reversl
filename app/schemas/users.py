@@ -44,10 +44,10 @@ class UserRSchemaWithPermissions(
     pass
 
 
-class UserLSchema(WithFullName):
+class UserLSchema(BaseModel):
+    model_config = {
+        "from_attributes": True,
+    }
     uid: int = Field(
         title="User ID",
-    )
-    email: EmailStr = Field(
-        title="User email",
     )

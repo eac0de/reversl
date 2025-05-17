@@ -31,15 +31,13 @@ def UserDep(
             )
         )
         if not user:
-            response = RedirectResponse(url=request.url_for("admin_panel_auth"))
+            response = RedirectResponse(url=request.url_for("ap_auth"))
             Auth.unset_session_cookie(response)
             raise ResponseException(response)
         if permission_codes_set and not permission_codes_set.issubset(
             [p.code for p in user.permissions]
         ):
-            raise ResponseException(
-                RedirectResponse(url=request.url_for("admin_panel_home"))
-            )
+            raise ResponseException(RedirectResponse(url=request.url_for("ap_home")))
         request.scope["user"] = UsersService.to_user_r_schema(user)
         return user
 

@@ -15,25 +15,25 @@
         <div class="collapse navbar-collapse" id="navbarContent">
             <!-- Навигация справа -->
             <ul class="navbar-nav ms-auto">
-                {% set active = 'active' if request.scope['route'].name == 'admin_panel_home' else
+                {% set active = 'active' if request.scope['route'].name == 'ap_home' else
                 '' %}
                 <li class="nav-item"><a class="nav-link {{active}}"
-                        href="{% if not active %}{{ url_for('admin_panel_home') }}{% else %}#{% endif %}">Home</a>
+                        href="{% if not active %}{{ url_for('ap_home') }}{% else %}#{% endif %}">Home</a>
                 </li>
 
                 {% if "R_USER" in request.user.permission_codes %}
-                {% set active = 'active' if request.scope['route'].name in ['admin_panel_users','admin_panel_user'] else
+                {% set active = 'active' if request.scope['route'].name == 'ap_users' else
                 '' %}
                 <li class="nav-item"><a class="nav-link {{active}}"
-                        href="{% if not active %}{{ url_for('admin_panel_users') }}{% else %}#{% endif %}">Users</a>
+                        href="{% if not active %}{{ url_for('ap_users') }}{% else %}#{% endif %}">Users</a>
                 </li>
                 {% endif %}
 
                 {% if "R_CHAT" in request.user.permission_codes %}
-                {% set active = 'active' if request.scope['route'].name in ['admin_panel_chats','admin_panel_chat'] else
+                {% set active = 'active' if request.scope['route'].name == 'ap_chats' else
                 '' %}
                 <li class="nav-item"><a class="nav-link {{active}}"
-                        href="{% if not active %}{{ url_for('admin_panel_chats') }}{% else %}#{% endif %}">Chats</a>
+                        href="{% if not active %}{{ url_for('ap_chats') }}{% else %}#{% endif %}">Chats</a>
                 </li>
                 {% endif %}
             </ul>

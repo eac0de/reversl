@@ -9,6 +9,7 @@ dependencies = [
     "alembic>=1.15.2",
     "asyncpg>=0.30.0",
     "bcrypt>=4.3.0",
+    "fa-filter>=0.2.1",
     "fastapi>=0.115.12",
     "jinja2>=3.1.6",
     "pydantic-settings>=2.9.1",
@@ -17,7 +18,7 @@ dependencies = [
     "python-magic>=0.4.27",
     "python-multipart>=0.0.20",
     "pytz>=2025.2",
-    "sqlalchemy[mypy]>=2.0.40",
+    "sqlalchemy[mypy]>=2.0.41",
     "uvicorn>=0.34.2",
 ]
 

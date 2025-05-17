@@ -5,7 +5,7 @@
     <div class="list-group list-group-flush overflow-auto">
         {% for chat in chats %}
         {% set active = 'active' if selected_chat and chat.uid == selected_chat.uid else '' %}
-        <a href="{{ url_for('admin_panel_chat', chat_uid=chat.uid) if not active else '#' }}"
+        <a href="{{ url_for('ap_chats').include_query_params(chat_uid=chat.uid) if not active else '#' }}"
             class="list-group-item list-group-item-action {{ active }}">
             Chat {{ chat.uid }}
         </a>
@@ -15,88 +15,105 @@
 
 <!-- Chat content -->
 {% if selected_chat %}
-<div class="flex-grow-1 d-flex">
-    <!-- Info panel -->
-    <div class="p-3 border-end flex-shrink-0" style="width: 20%;">
-        <h5 class="text-center">Info</h5>
-        <p><strong>First Name:</strong> {{ selected_chat.first_name or '-' }}</p>
-        <p><strong>Last Name:</strong> {{ selected_chat.last_name or '-' }}</p>
-        <p><strong>Patronymic Name:</strong> {{ selected_chat.patronymic_name or '-' }}</p>
-        <p><strong>Email:</strong> {{ selected_chat.email or '-' }}</p>
-        <p><strong>Tel.:</strong> {{ selected_chat.phone_number or '-' }}</p>
-    </div>
+<div class="container-fluid">
+    <div class="row h-100">
 
-    <!-- Messages and form -->
-    <div class="flex-grow-1 d-flex flex-column p-3">
-        <h5 class="text-center mb-3">Chat {{ selected_chat.uid }}</h5>
-        <div class="flex-grow-1 overflow-auto p-3 border rounded bg-white d-flex flex-column-reverse scrollarea">
-            {% for msg in messages | reverse %}
-            <div class="mb-3 d-flex {% if msg.user %}justify-content-end{% else %}justify-content-start{% endif %}">
-                <div class="d-flex flex-column p-2 px-3 rounded-3 {% if msg.user %}bg-primary text-white{% else %}bg-light border{% endif %}"
-                    style="max-width: 30%;">
-                    {% if msg.user %}
-                    <a href="{{ url_for('admin_panel_user', user_uid=msg.user.uid) }}"
-                        class="bg-secondary p-1 rounded text-white text-decoration-none align-self-center mb-2">
-                        <i class="bi bi-person-fill"></i> {{ msg.user.email }}
-                    </a>
-                    {% endif %}
-
-                    {% if msg.text %}
-                    <div class="mb-1 text-break">{{ msg.text }}</div>
-                    {% endif %}
-
-                    {% for file in msg.files | reverse %}
-                    {% if file.mime_type in ["image/jpeg", "image/png"] %}
-                    <img src="{{ url_for('admin_panel_download_message_file', file_uid=file.uid) }}" alt="image"
-                        class="img-fluid rounded mt-2" style="max-width: 100%; height: auto;">
-                    {% else %}
-                    <div class="mt-2">
-                        📎 <a href="{{ url_for('admin_panel_download_message_file', file_uid=file.uid) }}"
-                            class="text-decoration-underline text-reset" download>{{ file.name }}</a>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                </div>
+        <!-- Info panel -->
+        <div class="col-12 col-md-4 col-lg-3 col-xl-3 border-end p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div></div>
+                <h5 class="mb-0">Info</h5>
+                <button type="button"
+                    class="btn btn-sm btn-outline-primary {% if 'U_CHAT' not in request.user.permission_codes %}disabled{% endif %}"
+                    data-bs-toggle="modal" data-bs-target="#editChatModal">
+                    <i class="bi bi-pencil"></i>
+                </button>
             </div>
-            {% endfor %}
-        </div>
 
-        <!-- Message form -->
-        <div class="input-group my-3">
-            <button class="btn btn-outline-secondary" type="button" id="file-button">Add files</button>
-            <textarea id="message-input" class="form-control" rows="1" style="resize: none;"></textarea>
-            <button class="btn btn-primary" type="button" id="send-button">Send</button>
-        </div>
-        <input type="file" id="file-input" class="d-none" multiple>
+            <div class="mb-3">
+                <p class="mb-1"><strong>First Name:</strong><br><span id="chat-first-name">{{ selected_chat.first_name
+                        or '-' }}</span></p>
+                <p class="mb-1"><strong>Last Name:</strong><br><span id="chat-last-name">{{ selected_chat.last_name or
+                        '-' }}</span></p>
+                <p class="mb-1"><strong>Patronymic Name:</strong><br><span id="chat-patronymic-name">{{
+                        selected_chat.patronymic_name or '-' }}</span></p>
+            </div>
 
-        <!-- Bootstrap Modal -->
-        <div class="modal fade" id="fileModal" tabindex="-1" aria-labelledby="fileModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title me-auto" id="fileModalLabel">Selected files</h5>
-
-                        <button type="button" class="btn btn-sm btn-outline-primary me-2" id="add-more-files-btn">
-                            Add more files
-                        </button>
-
-                        <button type="button" class="btn btn-sm btn-outline-danger me-2" id="clear-all-files-btn">
-                            Delete all
-                        </button>
-
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="file-list" class="d-flex flex-column gap-2"></div>
-                    </div>
-                </div>
+            <div>
+                <p class="mb-1"><strong>Email:</strong><br><span id="chat-email">{{ selected_chat.email or '-' }}</span>
+                </p>
+                <p class="mb-0"><strong>Tel.:</strong><br><span id="chat-phone-number">{{ selected_chat.phone_number or
+                        '-' }}</span></p>
             </div>
         </div>
+
+        {% include "modals/editChatInfo.j2" %}
+        <script>
+            window.urlForUpdateChatInfo = "{{ url_for('ap_update_chat', chat_uid=selected_chat.uid) }}";
+        </script>
+        <script src="{{ get_static_url('js', 'editChatInfo.js') }}"></script>
+
+        <!-- Messages and form -->
+        <div class="col-12 col-md-8 col-lg-8 col-xl-9 d-flex flex-column p-3 h-100">
+            <h5 class="text-center mb-3">Chat {{ selected_chat.uid }}</h5>
+
+            <div id="messages"
+                class="flex-grow-1 overflow-auto p-3 border rounded bg-white d-flex flex-column-reverse scrollarea">
+                {% for msg in messages %}
+                <div class=" mb-3 d-flex {% if msg.user %}user-message-justify{% endif %}">
+                    <div
+                        class="message d-flex flex-column p-2 px-3 rounded-3 {% if msg.user %}bg-primary text-white{% else %}bg-light border{% endif %}">
+
+                        {% if msg.user %}
+                        <a href="{{ url_for('ap_users').include_query_params(user_uid=msg.user.uid) }}"
+                            class="bg-secondary p-1 rounded text-white text-decoration-none align-self-center mb-2 small text-break">
+                            <i class="bi bi-person-fill"></i> {{ msg.user.email }}
+                        </a>
+                        {% endif %}
+
+                        {% if msg.text %}
+                        <div class="mb-1 text-break">{{ msg.text }}</div>
+                        {% endif %}
+
+                        {% for file in msg.files | reverse %}
+                        {% if file.mime_type in ["image/jpeg", "image/png"] %}
+                        <img src="{{ url_for('ap_download_message_file', file_uid=file.uid, chat_uid=selected_chat.uid) }}"
+                            alt="image" class="img-fluid rounded mt-2">
+                        {% else %}
+                        <div class="mt-2 small">
+                            📎 <a
+                                href="{{ url_for('ap_download_message_file', file_uid=file.uid, chat_uid=selected_chat.uid) }}"
+                                class="text-decoration-underline text-reset" download>{{ file.name }}</a>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+
+            <!-- Message form -->
+            <div class="input-group my-3">
+                <button class="btn btn-outline-secondary" type="button" id="file-button">Add files</button>
+                <textarea id="message-input" class="form-control" rows="1" style="resize: none;"></textarea>
+                <button class="btn btn-primary" type="button" id="send-button">Send</button>
+            </div>
+            <input type="file" id="file-input" class="d-none" multiple>
+            {% include "modals/fileHandling.j2" %}
+        </div>
+
     </div>
 </div>
+
 <script>
-    window.sendMessageURL = "{{ url_for('admin_panel_send_message', chat_uid=selected_chat.uid) }}";
+    window.messagesOffset = {{ messages | length }};
+    window.messagesBatchSize = {{ messages_batch_size }};
+    window.sendMessageURL = "{{ url_for('ap_send_message', chat_uid=selected_chat.uid) }}";
+    window.getMessagesListURL = "{{ url_for('ap_get_messages_list', chat_uid=selected_chat.uid) }}";
 </script>
-<script src="{{ get_static_url('js', 'chat.js') }}"></script>
+<script src="{{ get_static_url('js', 'messenger.js') }}"></script>
 {% endif %}
+
 {% endblock %}
