@@ -3,7 +3,7 @@
 <!-- Обёртка на весь экран -->
 <div class="d-flex flex-column justify-content-center align-items-center min-vh-100">
     <h1 class="mb-5 text-center">Reversl Admin Panel</h1>
-    <main class="container" style="max-width: 350px;">
+    <div class="container" style="max-width: 350px;">
         <form method="POST" action="{{ url_for('ap_login') }}">
             <!-- CSRF токен -->
             <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
@@ -32,6 +32,6 @@
                 {% endif %}
             </p>
         </form>
-    </main>
+    </div>
 </div>
 {% endblock %}

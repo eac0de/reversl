@@ -1,18 +1,18 @@
 {% extends "main.j2" %}
 {% block page %}
 <!-- Sidebar -->
-<div class="d-flex flex-column flex-shrink-0 bg-light border-end" style="width: 15%;">
+<div id="sidebar" class="d-flex flex-column flex-shrink-0 bg-light border-end" style="min-width: 200px;">
     <div class="list-group list-group-flush overflow-auto">
         {% set active = 'active' if selected_user and request.user.uid == selected_user.uid else '' %}
         <a href="{{ url_for('ap_users').include_query_params(user_uid=request.user.uid) if not active else '#' }}"
-            class="list-group-item list-group-item-action {{ active }}">
+            class="list-group-item list-group-item-action {{ active }}" onclick="hideSidebarOnMobile()">
             Me
         </a>
         {% for user in users %}
         {% set active = 'active' if selected_user and user.uid == selected_user.uid else '' %}
         <a href="{{ url_for('ap_users').include_query_params(user_uid=user.uid) if not active else '#' }}"
-            class="list-group-item list-group-item-action {{ active }}">
-            User {{user.uid}}
+            class="list-group-item list-group-item-action {{ active }}" onclick="hideSidebarOnMobile()">
+            user.email
         </a>
         {% endfor %}
     </div>
@@ -20,34 +20,47 @@
 
 <!-- User content -->
 {% if selected_user %}
-<div class="flex-grow-1 d-flex flex-wrap">
+<script>window.selected = true;</script>
+<div id="content" class="flex-grow-1 d-flex flex-wrap">
     <!-- Info panel -->
-    <div class="p-3 border-end flex-shrink-0 col-12 col-sm-6 col-md-4 col-lg-3" style="min-width: 200px;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div></div>
-            <h5 class="mb-0">Info</h5>
-            <button type="button"
-                class="btn btn-sm btn-outline-primary {% if 'U_USER' not in request.user.permission_codes %}disabled{% endif %}"
-                data-bs-toggle="modal" data-bs-target="#editUserModal">
-                <i class="bi bi-pencil"></i>
-            </button>
+    <div class="p-3 border-end flex-shrink-0 col-12 col-sm-6" style="min-width: 200px;">
+        <div class="d-flex justify-content-between align-items-center mb-3 position-relative">
+            <div>
+                <button id="show-sidebar-button" type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="showSidebar()">
+                    <span class="bi bi-arrow-left"></span>
+                </button>
+            </div>
+            <h5 class="position-absolute top-50 start-50 translate-middle">Info</h5>
+            <div>
+                <button type="button"
+                    class="btn btn-sm btn-outline-primary {% if 'U_USER' not in request.user.permission_codes %}disabled{% endif %}"
+                    data-bs-toggle="modal" data-bs-target="#editUserModal">
+                    <i class="bi bi-pencil"></i>
+                </button>
+            </div>
         </div>
-
-        <div class="mb-3">
-            <p class="mb-1"><strong>First Name:</strong><br> <span id="user-first-name">{{ selected_user.first_name or
-                    '-'
-                    }}</span></p>
-            <p class="mb-1"><strong>Last Name:</strong><br> <span id="user-last-name">{{ selected_user.last_name or '-'
-                    }}</span></p>
-            <p class="mb-1"><strong>Patronymic Name:</strong><br> <span id="user-patronymic-name">{{
-                    selected_user.patronymic_name or '-' }}</span></p>
-        </div>
-
         <div>
-            <p class="mb-1"><strong>Email:</strong><br> <span id="user-email">{{ selected_user.email or '-' }}</span>
-            </p>
-            <p class="mb-0"><strong>Tel.:</strong><br> <span id="user-phone-number">{{ selected_user.phone_number or '-'
-                    }}</span></p>
+            <div class="mb-3">
+                <p class="mb-1"><strong>First Name:</strong><br> <span id="user-first-name">{{ selected_user.first_name
+                        or
+                        '-'
+                        }}</span></p>
+                <p class="mb-1"><strong>Last Name:</strong><br> <span id="user-last-name">{{ selected_user.last_name or
+                        '-'
+                        }}</span></p>
+                <p class="mb-1"><strong>Patronymic Name:</strong><br> <span id="user-patronymic-name">{{
+                        selected_user.patronymic_name or '-' }}</span></p>
+            </div>
+
+            <div>
+                <p class="mb-1"><strong>Email:</strong><br> <span id="user-email">{{ selected_user.email or '-'
+                        }}</span>
+                </p>
+                <p class="mb-0"><strong>Tel.:</strong><br> <span id="user-phone-number">{{ selected_user.phone_number or
+                        '-'
+                        }}</span></p>
+            </div>
         </div>
     </div>
 
@@ -57,16 +70,17 @@
 
     {% if "R_PERMISSION" in selected_user.permission_codes %}
     <!-- Permissions panel -->
-    <div class="p-3 border-end flex-shrink-0 col-12 col-sm-6 col-md-4 col-lg-3" style="min-width: 200px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="p-3 border-end flex-shrink-0 col-12 col-sm-6" style="min-width: 200px;">
+        <div class="d-flex justify-content-between align-items-center mb-4 position-relative">
             <div></div>
-            <h5 class="mb-0">Permissions</h5>
-            <button type="button"
-                class="btn btn-sm btn-outline-primary {% if request.user.uid == selected_user.uid or 'U_PERMISSION' not in selected_user.permission_codes %}disabled{% endif %}"
-                data-bs-toggle="modal" data-bs-target="#editPermissionsModal">
-                <i class="bi bi-pencil"></i>
-            </button>
-
+            <h5 class="position-absolute top-50 start-50 translate-middle">Perms</h5>
+            <div>
+                <button type="button"
+                    class="btn btn-sm btn-outline-primary {% if request.user.uid == selected_user.uid or 'U_PERMISSION' not in selected_user.permission_codes %}disabled{% endif %}"
+                    data-bs-toggle="modal" data-bs-target="#editPermissionsModal">
+                    <i class="bi bi-pencil"></i>
+                </button>
+            </div>
         </div>
         <table class="table table-bordered  table-sm w-auto mx-auto">
             <tbody>
@@ -98,6 +112,5 @@
     <script src="{{ get_static_url('js', 'editUserPermissions.js') }}"></script>
     {% endif %}
 </div>
-
 {% endif %}
 {% endblock %}

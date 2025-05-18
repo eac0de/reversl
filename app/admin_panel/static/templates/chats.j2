@@ -1,12 +1,12 @@
 {% extends "main.j2" %}
 {% block page %}
 <!-- Sidebar -->
-<div class="d-flex flex-column flex-shrink-0 bg-light border-end" style="width: 15%;">
+<div id="sidebar" class="d-flex flex-column flex-shrink-0 bg-light border-end" style="min-width: 200px;">
     <div class="list-group list-group-flush overflow-auto">
         {% for chat in chats %}
         {% set active = 'active' if selected_chat and chat.uid == selected_chat.uid else '' %}
         <a href="{{ url_for('ap_chats').include_query_params(chat_uid=chat.uid) if not active else '#' }}"
-            class="list-group-item list-group-item-action {{ active }}">
+            class="list-group-item list-group-item-action {{ active }}" onclick="hideSidebarOnMobile()">
             Chat {{ chat.uid }}
         </a>
         {% endfor %}
@@ -15,35 +15,46 @@
 
 <!-- Chat content -->
 {% if selected_chat %}
-<div class="container-fluid">
+<script>window.selected = true;</script>
+<div id="content" class="container-fluid">
     <div class="row h-100">
 
         <!-- Info panel -->
         <div class="col-12 col-md-4 col-lg-3 col-xl-3 border-end p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div></div>
-                <h5 class="mb-0">Info</h5>
+            <div class="d-flex justify-content-between align-items-center mb-3 position-relative">
+                <div>
+                    <button id="show-sidebar-button" type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="showSidebar()">
+                        <span class="bi bi-arrow-left"></span>
+                    </button>
+                </div>
+                <h5 class="position-absolute top-50 start-50 translate-middle">Info</h5>
                 <button type="button"
                     class="btn btn-sm btn-outline-primary {% if 'U_CHAT' not in request.user.permission_codes %}disabled{% endif %}"
                     data-bs-toggle="modal" data-bs-target="#editChatModal">
                     <i class="bi bi-pencil"></i>
                 </button>
             </div>
-
-            <div class="mb-3">
-                <p class="mb-1"><strong>First Name:</strong><br><span id="chat-first-name">{{ selected_chat.first_name
-                        or '-' }}</span></p>
-                <p class="mb-1"><strong>Last Name:</strong><br><span id="chat-last-name">{{ selected_chat.last_name or
-                        '-' }}</span></p>
-                <p class="mb-1"><strong>Patronymic Name:</strong><br><span id="chat-patronymic-name">{{
-                        selected_chat.patronymic_name or '-' }}</span></p>
-            </div>
-
             <div>
-                <p class="mb-1"><strong>Email:</strong><br><span id="chat-email">{{ selected_chat.email or '-' }}</span>
-                </p>
-                <p class="mb-0"><strong>Tel.:</strong><br><span id="chat-phone-number">{{ selected_chat.phone_number or
-                        '-' }}</span></p>
+                <div class="mb-3">
+                    <p class="mb-1"><strong>First Name:</strong><br><span id="chat-first-name">{{
+                            selected_chat.first_name
+                            or '-' }}</span></p>
+                    <p class="mb-1"><strong>Last Name:</strong><br><span id="chat-last-name">{{ selected_chat.last_name
+                            or
+                            '-' }}</span></p>
+                    <p class="mb-1"><strong>Patronymic Name:</strong><br><span id="chat-patronymic-name">{{
+                            selected_chat.patronymic_name or '-' }}</span></p>
+                </div>
+
+                <div>
+                    <p class="mb-1"><strong>Email:</strong><br><span id="chat-email">{{ selected_chat.email or '-'
+                            }}</span>
+                    </p>
+                    <p class="mb-0"><strong>Tel.:</strong><br><span id="chat-phone-number">{{ selected_chat.phone_number
+                            or
+                            '-' }}</span></p>
+                </div>
             </div>
         </div>
 

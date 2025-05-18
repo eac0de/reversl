@@ -54,3 +54,41 @@ body {
     margin-left: 30px;
   }
 }
+
+#box {
+  width: 90%;
+  height: 90%;
+}
+
+@media (max-width: 872px) {
+  #box {
+    width: 100%;
+    height: 100%;
+    border-radius: 0 !important;
+  }
+}
+
+#sidebar {
+  width: 15%;
+}
+#show-sidebar-button {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  #sidebar {
+    width: 100%;
+    border-radius: 0;
+  }
+
+  #sidebar .list-group-item.active {
+    background-color: var(--bs-list-group-bg);
+    color: var(--bs-list-group-color);
+  }
+  #box {
+    overflow-y: auto !important;
+  }
+  #show-sidebar-button {
+    display: inline-block;
+  }
+}
