@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fileList.appendChild(fileItem);
     });
 
-    fileButton.textContent = storedFiles.length > 0 ? "View files" : "Add files";
+    fileButton.textContent = storedFiles.length > 0 ? "View files: " + storedFiles.length : "Add files";
   }
 
   fileInput.addEventListener("change", () => {
@@ -90,27 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  sendButton.addEventListener("click", () => {
-    const formData = new FormData();
-    formData.append("csrf_token", window.csrfToken);
-    formData.append("text", textarea.value);
-    storedFiles.forEach((file) => formData.append("files", file));
-
-    fetch(window.sendMessageURL, {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then(() => {
-        textarea.value = "";
-        storedFiles = [];
-        updateFileList();
-        resizeTextarea();
-        fileModal.hide();
-      })
-      .catch(console.error);
-  });
-
   const messagesContainer = document.querySelector("#messages");
   let isLoading = false; // Флаг для предотвращения множественных запросов
 
@@ -136,14 +115,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (msg.files && msg.files.length > 0) {
       msg.files.reverse().forEach((file) => {
         if (["image/jpeg", "image/png"].includes(file.mime_type)) {
+          // TODO Сделать шаблон для получения файлов и передавать его подменяя значение ${window.selectedChatUID} ${file.uid}
           html += `
-                        <img src="/chats/${msg.chat_uid}/files/${file.uid}" 
+                        <img src="${window.apiPrefix || ""}/admin/api/chats/${window.selectedChatUID}/files/${file.uid}/" 
                              alt="image" class="img-fluid rounded mt-2">
                     `;
         } else {
           html += `
                         <div class="mt-2 small">
-                            📎 <a href="/chats/${msg.chat_uid}/files/${file.uid}" 
+                            📎 <a href="${window.apiPrefix || ""}/admin/api/chats/${window.selectedChatUID}/files/${file.uid}/" 
                                   class="text-decoration-underline text-reset" download>${file.name}</a>
                         </div>
                     `;
@@ -153,6 +133,40 @@ document.addEventListener("DOMContentLoaded", () => {
     html += `</div></div>`;
     return html;
   }
+
+  sendButton.addEventListener("click", () => {
+    if (!textarea.value.trim() && storedFiles.length === 0) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append("csrf_token", window.csrfToken);
+    formData.append("text", textarea.value);
+    storedFiles.forEach((file) => formData.append("files", file));
+
+    fetch(window.sendMessageURL, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        textarea.value = "";
+        storedFiles = [];
+        updateFileList();
+        resizeTextarea();
+        fileModal.hide();
+        const fragment = document.createDocumentFragment();
+        const div = document.createElement("div");
+        div.innerHTML = createMessageHtml(data);
+        fragment.appendChild(div.firstElementChild);
+        messagesContainer.prepend(fragment);
+      })
+      .catch(console.error);
+  });
 
   // Функция для загрузки сообщений
   async function loadMoreMessages() {

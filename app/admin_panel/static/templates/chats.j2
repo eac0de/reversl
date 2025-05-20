@@ -6,7 +6,7 @@
         {% for chat in chats %}
         {% set active = 'active' if selected_chat and chat.uid == selected_chat.uid else '' %}
         <a href="{{ url_for('ap_chats').include_query_params(chat_uid=chat.uid) if not active else '#' }}"
-            class="list-group-item list-group-item-action {{ active }}" onclick="hideSidebarOnMobile()">
+            class="list-group-item list-group-item-action {{ active }}">
             Chat {{ chat.uid }}
         </a>
         {% endfor %}
@@ -24,7 +24,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3 position-relative">
                 <div>
                     <button id="show-sidebar-button" type="button" class="btn btn-outline-secondary btn-sm"
-                        onclick="showSidebar()">
+                        onclick="window.history.back()">
                         <span class="bi bi-arrow-left"></span>
                     </button>
                 </div>
@@ -118,6 +118,7 @@
 </div>
 
 <script>
+    window.selectedChatUID = "{{ selected_chat.uid }}";
     window.messagesOffset = {{ messages | length }};
     window.messagesBatchSize = {{ messages_batch_size }};
     window.sendMessageURL = "{{ url_for('ap_send_message', chat_uid=selected_chat.uid) }}";
