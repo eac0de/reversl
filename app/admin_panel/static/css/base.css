@@ -74,6 +74,9 @@ body {
 #show-sidebar-button {
   display: none;
 }
+#content {
+  overflow: auto;
+}
 
 @media (max-width: 600px) {
   #sidebar {

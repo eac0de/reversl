@@ -16,7 +16,7 @@
 <!-- Chat content -->
 {% if selected_chat %}
 <script>window.selected = true;</script>
-<div id="content" class="container-fluid">
+<div id="content" class="container-fluid scrollarea">
     <div class="row h-100">
 
         <!-- Info panel -->
@@ -65,7 +65,7 @@
         <script src="{{ get_static_url('js', 'editChatInfo.js') }}"></script>
 
         <!-- Messages and form -->
-        <div class="col-12 col-md-8 col-lg-8 col-xl-9 d-flex flex-column p-3 h-100">
+        <div class="col-12 col-md-8 col-lg-8 col-xl-9 d-flex flex-column p-3 mh-100">
             <h5 class="text-center mb-3">Chat {{ selected_chat.uid }}</h5>
 
             <div id="messages"
@@ -114,7 +114,6 @@
             <input type="file" id="file-input" class="d-none" multiple>
             {% include "modals/fileHandling.j2" %}
         </div>
-
     </div>
 </div>
 
@@ -125,6 +124,7 @@
     window.getMessagesListURL = "{{ url_for('ap_get_messages_list', chat_uid=selected_chat.uid) }}";
 </script>
 <script src="{{ get_static_url('js', 'messenger.js') }}"></script>
+<script src="{{ get_static_url('js', 'adaptiveMain.js') }}"></script>
 {% endif %}
 
 {% endblock %}

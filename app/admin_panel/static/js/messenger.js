@@ -207,11 +207,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }, 100); // Задержка 100 мс для debounce
   }
-  // Добавляем слушатель прокрутки
 
-  console.log(window.messagesBatchSize, window.messagesOffset);
   if (window.messagesBatchSize === window.messagesOffset) {
-    console.log("Adding scroll listener");
     messagesContainer.addEventListener("scroll", handleScroll);
   }
 });

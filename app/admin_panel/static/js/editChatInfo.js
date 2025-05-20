@@ -57,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.hide();
       })
       .catch((err) => {
-        console.log(err);
         alert("Failed: " + err.message);
       });
   });
