@@ -1,7 +1,7 @@
 from typing import Annotated, Literal
 
 from anyio import Path
-from pydantic import BeforeValidator, EmailStr
+from pydantic import BeforeValidator, EmailStr, RedisDsn
 from pydantic_settings import BaseSettings
 
 
@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "reversl"
+
+    REDIS_DSN: RedisDsn = RedisDsn("redis://localhost:6379/0")
 
     SECRET_KEY: str = "secret"
 

@@ -94,45 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let isLoading = false; // Флаг для предотвращения множественных запросов
 
   // Функция для создания HTML сообщения
-  function createMessageHtml(msg) {
-    const userClass = msg.user ? "user-message-justify" : "";
-    const bubbleClass = msg.user ? "bg-primary text-white" : "bg-light border";
-    let html = `
-            <div class="mb-3 d-flex ${userClass}">
-                <div class="message d-flex flex-column p-2 px-3 rounded-3 ${bubbleClass}">
-        `;
-    if (msg.user) {
-      html += `
-                <a href="/users?user_uid=${msg.user.uid}" 
-                   class="bg-secondary p-1 rounded text-white text-decoration-none align-self-center mb-2 small text-break">
-                    <i class="bi bi-person-fill"></i> ${msg.user.email}
-                </a>
-            `;
-    }
-    if (msg.text) {
-      html += `<div class="mb-1 text-break">${msg.text}</div>`;
-    }
-    if (msg.files && msg.files.length > 0) {
-      msg.files.reverse().forEach((file) => {
-        if (["image/jpeg", "image/png"].includes(file.mime_type)) {
-          // TODO Сделать шаблон для получения файлов и передавать его подменяя значение ${window.selectedChatUID} ${file.uid}
-          html += `
-                        <img src="${window.apiPrefix || ""}/admin/api/chats/${window.selectedChatUID}/files/${file.uid}/" 
-                             alt="image" class="img-fluid rounded mt-2">
-                    `;
-        } else {
-          html += `
-                        <div class="mt-2 small">
-                            📎 <a href="${window.apiPrefix || ""}/admin/api/chats/${window.selectedChatUID}/files/${file.uid}/" 
-                                  class="text-decoration-underline text-reset" download>${file.name}</a>
-                        </div>
-                    `;
-        }
-      });
-    }
-    html += `</div></div>`;
-    return html;
-  }
 
   sendButton.addEventListener("click", () => {
     if (!textarea.value.trim() && storedFiles.length === 0) {
@@ -151,19 +112,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!response.ok) {
           throw new Error(`HTTP error: ${response.status}`);
         }
-        return response.json();
       })
-      .then((data) => {
+      .then(() => {
         textarea.value = "";
         storedFiles = [];
         updateFileList();
         resizeTextarea();
         fileModal.hide();
-        const fragment = document.createDocumentFragment();
-        const div = document.createElement("div");
-        div.innerHTML = createMessageHtml(data);
-        fragment.appendChild(div.firstElementChild);
-        messagesContainer.prepend(fragment);
       })
       .catch(console.error);
   });
@@ -189,10 +144,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Добавляем сообщения в начало (вверху, из-за flex-column-reverse)
       const fragment = document.createDocumentFragment();
-      messages.forEach((msg) => {
-        const div = document.createElement("div");
-        div.innerHTML = createMessageHtml(msg);
-        fragment.appendChild(div.firstElementChild);
+      messages.forEach((data) => {
+        fragment.appendChild(createMessageHtml(data));
       });
       messagesContainer.append(fragment);
 
@@ -203,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const newHeight = messagesContainer.scrollHeight;
       messagesContainer.scrollTop = oldScrollTop + (newHeight - oldHeight);
     } catch (error) {
+      console.error("Error loading messages:", error);
       alert("Error loading messages:", error);
     } finally {
       isLoading = false;

@@ -1,14 +1,22 @@
 from typing import Annotated, Any
 
 import jwt
-from fastapi import Cookie, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    Cookie,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    WebSocketException,
+    status,
+)
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.database import get_db_session
 from app.core.exceptions import ResponseException
-from app.database import get_db_session
 from app.models.chat import Chat
 
 NotAuthenticatedException = HTTPException(
@@ -43,6 +51,12 @@ class ChatAuthPayloadSchema(BaseModel):
     chat_uid: int = Field(
         title="Chat ID",
     )
+
+
+ws_no_unauthorized_exception = WebSocketException(
+    code=status.WS_1008_POLICY_VIOLATION,
+    reason="Unauthorized",
+)
 
 
 class Auth:
@@ -92,6 +106,19 @@ class Auth:
             raise ResponseException(response) from e
 
     @classmethod
+    async def get_auth_payload_ws(
+        cls,
+        token: Annotated[str | None, Cookie(alias=ADMIN_PANEL_TOKEN_KEY)] = None,
+    ) -> AuthPayloadSchema:
+        if token is None:
+            raise ws_no_unauthorized_exception
+        try:
+            payload = cls._get_payload(token)
+            return AuthPayloadSchema.model_validate(payload)
+        except Exception as e:
+            raise ws_no_unauthorized_exception from e
+
+    @classmethod
     async def get_chat_auth_payload(
         cls,
         response: Response,
@@ -128,4 +155,5 @@ class Auth:
 
 
 AuthDep = Annotated[AuthPayloadSchema, Depends(Auth.get_auth_payload)]
+AuthWSDep = Annotated[AuthPayloadSchema, Depends(Auth.get_auth_payload_ws)]
 ChatDep = Annotated[Chat, Depends(Auth.get_chat_auth_payload)]

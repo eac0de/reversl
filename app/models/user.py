@@ -48,7 +48,7 @@ class User(Base):
         comment="User password",
     )
 
-    permissions: Mapped[list["Permission"]] = relationship(
+    permissions: Mapped[set["Permission"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )

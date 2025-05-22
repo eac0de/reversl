@@ -5,7 +5,8 @@
     <div class="list-group list-group-flush overflow-auto">
         {% for chat in chats %}
         {% set active = 'active' if selected_chat and chat.uid == selected_chat.uid else '' %}
-        <a href="{{ url_for('ap_chats').include_query_params(chat_uid=chat.uid) if not active else '#' }}"
+        <a id="chat-{{ chat.uid }}"
+            href="{{ url_for('ap_chats').include_query_params(chat_uid=chat.uid) if not active else '#' }}"
             class="list-group-item list-group-item-action {{ active }}">
             Chat {{ chat.uid }}
         </a>
@@ -118,7 +119,7 @@
 </div>
 
 <script>
-    window.selectedChatUID = "{{ selected_chat.uid }}";
+    window.selectedChatUID = {{ selected_chat.uid }};
     window.messagesOffset = {{ messages | length }};
     window.messagesBatchSize = {{ messages_batch_size }};
     window.sendMessageURL = "{{ url_for('ap_send_message', chat_uid=selected_chat.uid) }}";

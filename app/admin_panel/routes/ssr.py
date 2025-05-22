@@ -9,7 +9,7 @@ from jinja2 import pass_context
 from app.admin_panel.filters.messages import MessagesFilter
 from app.admin_panel.filters.users import UsersFilter
 from app.config import settings
-from app.database import DBSessionDep
+from app.core.database import DBSessionDep
 from app.dependencies.auth import ADMIN_PANEL_TOKEN_KEY, Auth
 from app.dependencies.users import UserDep
 from app.models.permission import (

@@ -32,11 +32,10 @@ class ChatsService:
 
     async def create_chat(
         self,
-    ) -> ChatLSchema:
+    ) -> Chat:
         chat = Chat()
         self.db_session.add(chat)
-        await self.db_session.flush()
-        return ChatLSchema.model_validate(chat, from_attributes=True)
+        return chat
 
     async def get_chats_list(
         self,
@@ -149,6 +148,24 @@ class ChatsService:
                 for p in files_paths:
                     await p.unlink()
                 raise
+        return message
+
+    async def get_message_or_none(
+        self,
+        chat_uid: int,
+        message_uid: int,
+    ) -> Message | None:
+        stmt = (
+            select(Message)
+            .where(
+                Message.uid == message_uid,
+                Message.chat_uid == chat_uid,
+            )
+            .options(
+                joinedload(Message.files),
+            )
+        )
+        message = await self.db_session.scalar(stmt)
         return message
 
     @staticmethod

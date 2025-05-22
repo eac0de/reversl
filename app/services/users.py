@@ -107,7 +107,7 @@ class UsersService:
             db_session.add(user)
         user.permissions.clear()
         for c in PermissionCode.__members__.values():
-            user.permissions.append(
+            user.permissions.add(
                 Permission(
                     code=c,
                 )
@@ -191,12 +191,12 @@ class UsersService:
         validated_permission_codes = set(schema.permission_codes)
         for code in schema.permission_codes:
             validated_permission_codes.update(AUTO_PERMISSIONS_MAP.get(code, set()))
-        user.permissions = [
+        user.permissions = set(
             Permission(
                 code=code,
             )
             for code in validated_permission_codes
-        ]
+        )
         await self.db_session.flush()
         return await self.db_session.scalars(
             select(Permission).where(Permission.user_uid == user.uid)

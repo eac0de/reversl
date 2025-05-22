@@ -31,6 +31,7 @@ class PermissionCode(str, Enum):
 
 PERMISSION_GROUPS_MAP: dict[str, set[PermissionCode]] = {
     "User": {
+        PermissionCode.C_USER,
         PermissionCode.R_USER,
         PermissionCode.U_USER,
         PermissionCode.D_USER,

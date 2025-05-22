@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .then((data) => {
         for (let key of Object.keys(window.permissionCodeNameMap)) {
+          console.log("perm-" + key);
           permFromForm = document.getElementById("form-perm-" + key);
           perm = document.getElementById("perm-" + key);
           if (data.permission_codes.includes(key)) {
@@ -34,8 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const modal = bootstrap.Modal.getInstance(document.getElementById("editPermissionsModal"));
         modal.hide();
       })
-      .catch((err) => {
-        alert("Failed: " + err.message);
-      });
+      // .catch((err) => {
+      //   alert("Failed: " + err.message);
+      // });
   });
 });

@@ -1,11 +1,21 @@
+import json
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from fastapi.responses import RedirectResponse, StreamingResponse
 
 from app.admin_panel.filters.messages import MessagesFilter
+from app.core.constants import AP_REDIS_CHANNEL, CHAT_REDIS_CHANNEL_PATTERN
+from app.core.database import DBSessionDep, with_commit
 from app.core.exceptions import ResponseException
-from app.database import DBSessionDep, with_commit
+from app.core.rediss import get_redis
 from app.dependencies.users import UserDep
 from app.models.permission import PermissionCode
 from app.models.user import User
@@ -119,7 +129,7 @@ async def create_message(
     chat_uid: int,
     current_user: Annotated[User, UserDep(PermissionCode.R_CHAT)],
     schema: Annotated[MessageCSchema, Form(media_type="multipart/form-data")],
-) -> MessageRLSchema:
+) -> None:
     chats_service = ChatsService(
         db_session=db_session,
     )
@@ -137,7 +147,16 @@ async def create_message(
             schema=schema,
             current_user=current_user,
         )
-    return chats_service.to_message_rl_schema(msg)
+    redis_msg = json.dumps(
+        {
+            "type": "message",
+            "chat_uid": chat.uid,
+            "message_uid": msg.uid,
+        }
+    )
+    redis = get_redis()
+    await redis.publish(AP_REDIS_CHANNEL, redis_msg)
+    await redis.publish(CHAT_REDIS_CHANNEL_PATTERN.format(chat.uid), redis_msg)
 
 
 @router.get(
@@ -159,6 +178,32 @@ async def get_messages_list(
         messages_filter=messages_filter,
     )
     return [service.to_message_rl_schema(message) for message in messages_list]
+
+
+@router.get(
+    path="/chats/{chat_uid}/messages/{message_uid}/",
+    response_model=MessageRLSchema,
+    name="ap_get_message",
+    dependencies=[UserDep(PermissionCode.R_MESSAGE)],
+)
+async def get_message(
+    db_session: DBSessionDep,
+    chat_uid: int,
+    message_uid: int,
+) -> MessageRLSchema:
+    service = ChatsService(
+        db_session=db_session,
+    )
+    message = await service.get_message_or_none(
+        chat_uid=chat_uid,
+        message_uid=message_uid,
+    )
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found",
+        )
+    return service.to_message_rl_schema(message)
 
 
 @router.patch(
@@ -186,20 +231,3 @@ async def update_chat(
             schema=schema,
         )
     return service.to_chat_r_schema(chat)
-
-
-# @router.websocket(
-#     path="/ws/",
-#     name="ap_ws",
-#     dependencies=[UserDep(PermissionCode.U_PERMISSION)],
-# )
-# async def websocket_endpoint(
-#     websocket: WebSocket,
-#     current_user: Annotated[User, UserDep(PermissionCode.U_PERMISSION)],
-#     db_session: DBSessionDep,
-# ):
-#     await ws_handler(
-#         websocket=websocket,
-#         db_session=db_session,
-#         current_user=current_user,
-# )

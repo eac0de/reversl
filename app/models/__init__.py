@@ -1,4 +1,4 @@
-from app.database import Base
+from app.core.database import Base
 from app.models.chat import Chat
 from app.models.message import Message
 from app.models.message_file import MessageFile

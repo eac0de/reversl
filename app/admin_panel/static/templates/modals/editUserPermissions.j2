@@ -13,9 +13,10 @@
                         <h6 class="fw-bold">{{ category }}</h6>
                         {% for perm in keys %}
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="permissions" id="form-perm-{{ perm }}"
-                                value="{{ perm }}" {% if perm in selected_user.permission_codes %}checked{% endif %}>
-                            <label class="form-check-label" for="perm-{{ perm }}">
+                            <input class="form-check-input" type="checkbox" name="permissions"
+                                id="form-perm-{{ perm.value }}" value="{{ perm.value }}" {% if perm in
+                                selected_user.permission_codes %}checked{% endif %}>
+                            <label class="form-check-label" for="form-perm-{{ perm.value }}">
                                 {{ permission_code_name_map[perm] }}
                             </label>
                         </div>
